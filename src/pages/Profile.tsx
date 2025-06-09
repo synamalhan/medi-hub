@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import toast from 'react-hot-toast';
+import { SubscriptionPaywall } from '../components/SubscriptionPaywall';
 
 const Profile: React.FC = () => {
   const { user, updateUser } = useAuthStore();
@@ -207,23 +208,30 @@ const Profile: React.FC = () => {
               </div>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center p-4 bg-blue-50 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">{user.stats.streakDays}</div>
-                <div className="text-sm text-blue-700">Day Streak</div>
-              </div>
-              <div className="text-center p-4 bg-green-50 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">{user.stats.simulatorAccuracy}%</div>
-                <div className="text-sm text-green-700">Accuracy</div>
-              </div>
-              <div className="text-center p-4 bg-purple-50 rounded-lg">
-                <div className="text-2xl font-bold text-purple-600">{user.stats.flashcardsReviewed}</div>
-                <div className="text-sm text-purple-700">Cards Reviewed</div>
-              </div>
-              <div className="text-center p-4 bg-orange-50 rounded-lg">
-                <div className="text-2xl font-bold text-orange-600">{user.stats.totalStudyHours}h</div>
-                <div className="text-sm text-orange-700">Study Time</div>
+            {/* Stats */}
+            <div className="card">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Your Stats</h2>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 mb-1">Study Streak</p>
+                  <p className="text-2xl font-bold text-gray-900">{user?.stats?.streakDays || 0} days</p>
+                </div>
+                
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 mb-1">Total Study Hours</p>
+                  <p className="text-2xl font-bold text-gray-900">{user?.stats?.totalStudyHours || 0} hrs</p>
+                </div>
+                
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 mb-1">Flashcards Reviewed</p>
+                  <p className="text-2xl font-bold text-gray-900">{user?.stats?.flashcardsReviewed || 0}</p>
+                </div>
+                
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 mb-1">Simulator Accuracy</p>
+                  <p className="text-2xl font-bold text-gray-900">{user?.stats?.simulatorAccuracy || 0}%</p>
+                </div>
               </div>
             </div>
           </div>
@@ -300,19 +308,16 @@ const Profile: React.FC = () => {
             </div>
           </div>
 
-          {/* Pro Upgrade */}
-          {!user.isPro && (
-            <div className="card bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200">
-              <div className="text-center">
-                <Crown className="w-12 h-12 text-yellow-600 mx-auto mb-3" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Upgrade to Pro</h3>
-                <p className="text-gray-600 text-sm mb-4">
-                  Unlock advanced analytics, unlimited flashcards, and priority support.
-                </p>
-                <button className="w-full btn-primary">
-                  Upgrade Now
-                </button>
-              </div>
+          {/* Pro Upgrade Card */}
+          {!user?.isPro && (
+            <div className="card">
+              <SubscriptionPaywall 
+                variant="compact" 
+                onSuccess={() => {
+                  // Refresh user data after successful purchase
+                  window.location.reload();
+                }} 
+              />
             </div>
           )}
 

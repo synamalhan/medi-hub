@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
@@ -20,10 +20,12 @@ import {
 import { useAuthStore } from '../stores/authStore';
 import { useDataStore } from '../stores/dataStore';
 import { format, isToday, isTomorrow, differenceInDays } from 'date-fns';
+import { SubscriptionPaywall } from '../components/SubscriptionPaywall';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuthStore();
   const { flashcards, deadlines, studySessions } = useDataStore();
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const upcomingDeadlines = deadlines
     .filter(d => !d.isCompleted)
@@ -267,21 +269,20 @@ const Dashboard: React.FC = () => {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-700">Flashcards</span>
-                  <span className="text-sm text-gray-500">{user?.stats.flashcardsReviewed}/25</span>
+                  <span className="text-sm text-gray-500">{user?.stats?.flashcardsReviewed || 0}/25</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-blue-600 h-2 rounded-full" style={{ width: user.stats.flashcardsReviewed/25 }}></div>
+                  <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${(user?.stats?.flashcardsReviewed || 0) / 25 * 100}%` }}></div>
                 </div>
               </div>
-
               
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-700">Patient Cases</span>
-                  <span className="text-sm text-gray-500">{user?.stats.simulatorAccuracy}/5</span>
+                  <span className="text-sm text-gray-500">{user?.stats?.simulatorAccuracy || 0}/5</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-purple-600 h-2 rounded-full" style={{ width: user.stats.simulatorAccuracy/5 }}></div>
+                  <div className="bg-purple-600 h-2 rounded-full" style={{ width: `${(user?.stats?.simulatorAccuracy || 0) / 5 * 100}%` }}></div>
                 </div>
               </div>
             </div>
@@ -289,7 +290,7 @@ const Dashboard: React.FC = () => {
             <div className="mt-6 pt-6 border-t border-gray-100">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700">Overall Progress</span>
-                <span className="text-sm font-bold text-primary-600">{user?.stats.totalStudyHours}</span>
+                <span className="text-sm font-bold text-primary-600">{user?.stats?.totalStudyHours || 0}</span>
               </div>
             </div>
           </div>
@@ -298,35 +299,65 @@ const Dashboard: React.FC = () => {
 
       {/* Pro Features Teaser */}
       {!user?.isPro && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-          className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-2xl p-8"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center space-x-2 mb-2">
-                <Award className="w-6 h-6 text-yellow-600" />
-                <span className="text-sm font-semibold text-yellow-800 bg-yellow-200 px-2 py-1 rounded-full">
-                  Pro Feature
-                </span>
+        <>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+            className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-2xl p-8"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center space-x-2 mb-2">
+                  <Award className="w-6 h-6 text-yellow-600" />
+                  <span className="text-sm font-semibold text-yellow-800 bg-yellow-200 px-2 py-1 rounded-full">
+                    Pro Feature
+                  </span>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  Unlock Advanced Analytics
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Get detailed performance insights, study recommendations, and personalized learning paths.
+                </p>
+                <button 
+                  className="btn-primary"
+                  onClick={() => setShowPaywall(true)}
+                >
+                  Upgrade to Pro
+                </button>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                Unlock Advanced Analytics
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Get detailed performance insights, study recommendations, and personalized learning paths.
-              </p>
-              <button className="btn-primary">
-                Upgrade to Pro
-              </button>
+              <div className="hidden md:block">
+                <BarChart3 className="w-16 h-16 text-yellow-400" />
+              </div>
             </div>
-            <div className="hidden md:block">
-              <BarChart3 className="w-16 h-16 text-yellow-400" />
-            </div>
-          </div>
-        </motion.div>
+          </motion.div>
+
+          {showPaywall && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.3 }}
+                className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+              >
+                <SubscriptionPaywall 
+                  variant="full" 
+                  onSuccess={() => {
+                    setShowPaywall(false);
+                    window.location.reload();
+                  }}
+                  onClose={() => setShowPaywall(false)}
+                />
+              </motion.div>
+            </motion.div>
+          )}
+        </>
       )}
     </div>
   );

@@ -217,7 +217,7 @@ const Mnemonics: React.FC = () => {
           >
             Browse ({mnemonics.length})
           </button>
-          <button
+          {/* <button
             onClick={() => setCurrentMode('generate')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
               currentMode === 'generate'
@@ -227,7 +227,7 @@ const Mnemonics: React.FC = () => {
           >
             <Sparkles className="w-4 h-4" />
             <span>AI Generate</span>
-          </button>
+          </button> */}
           <button
             onClick={() => setCurrentMode('create')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 ${

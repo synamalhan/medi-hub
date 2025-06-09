@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { useAuthStore } from '../stores/authStore';
+import { SubscriptionPaywall } from '../components/SubscriptionPaywall';
 
 const Analytics: React.FC = () => {
   const { user } = useAuthStore();
@@ -55,42 +56,13 @@ const Analytics: React.FC = () => {
   if (!user?.isPro) {
     return (
       <div className="space-y-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-center py-16"
-        >
-          <Award className="w-24 h-24 text-yellow-500 mx-auto mb-6" />
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Advanced Analytics</h1>
-          <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
-            Unlock detailed performance insights, study recommendations, and personalized learning analytics with MediHub Pro.
-          </p>
-          
-          <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-2xl p-8 max-w-4xl mx-auto">
-            <div className="grid md:grid-cols-3 gap-8 mb-8">
-              <div className="text-center">
-                <BarChart3 className="w-12 h-12 text-yellow-600 mx-auto mb-3" />
-                <h3 className="font-semibold text-gray-900 mb-2">Performance Tracking</h3>
-                <p className="text-gray-600 text-sm">Track accuracy across all medical specialties</p>
-              </div>
-              <div className="text-center">
-                <TrendingUp className="w-12 h-12 text-yellow-600 mx-auto mb-3" />
-                <h3 className="font-semibold text-gray-900 mb-2">Progress Insights</h3>
-                <p className="text-gray-600 text-sm">Visualize your learning journey over time</p>
-              </div>
-              <div className="text-center">
-                <Brain className="w-12 h-12 text-yellow-600 mx-auto mb-3" />
-                <h3 className="font-semibold text-gray-900 mb-2">AI Recommendations</h3>
-                <p className="text-gray-600 text-sm">Get personalized study suggestions</p>
-              </div>
-            </div>
-            
-            <button className="btn-primary text-lg px-8 py-3">
-              Upgrade to Pro
-            </button>
-          </div>
-        </motion.div>
+        <SubscriptionPaywall 
+          variant="full" 
+          onSuccess={() => {
+            // Refresh user data after successful purchase
+            window.location.reload();
+          }} 
+        />
       </div>
     );
   }
