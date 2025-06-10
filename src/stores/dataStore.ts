@@ -2,8 +2,9 @@ import { create } from 'zustand';
 import { PatientCase, Flashcard, Deadline, Mnemonic, StudySession } from '../types';
 import { supabase } from '../lib/supabase';
 import { generatePatientCase } from '../lib/patientGenerator';
+import { generateMnemonic, generateMnemonicFallback } from '../lib/openai';
 import { addDays } from 'date-fns';
-import { useAuthStore } from '../stores/authStore'; // Adjust path if needed
+import { useAuthStore } from '../stores/authStore';
 
 interface DataState {
   patientCases: PatientCase[];
@@ -32,12 +33,16 @@ interface DataState {
   
   // Mnemonics
   addMnemonic: (mnemonic: Omit<Mnemonic, 'id' | 'createdAt'>) => Promise<void>;
-  generateMnemonic: (term: string) => string;
+  generateAIMnemonic: (term: string, style?: 'funny' | 'professional' | 'creative') => Promise<{ mnemonic: string; explanation: string; }>;
   loadMnemonics: () => Promise<void>;
   
   // Study Sessions
   startStudySession: (type: StudySession['type']) => Promise<string>;
   endStudySession: (id: string, correct: number, incorrect: number) => Promise<void>;
+  
+  // Stats Management
+  updateUserStats: (statType: string, incrementValue?: number) => Promise<void>;
+  getUserStats: () => Promise<any>;
   
   // Data loading
   loadAllData: () => Promise<void>;
@@ -57,55 +62,50 @@ export const useDataStore = create<DataState>((set, get) => ({
   },
 
   submitDiagnosis: async (diagnosis: string) => {
-  const currentCase = get().currentCase;
-  if (!currentCase) {
-    console.warn('No current case found.');
-    return false;
-  }
-
-  const isCorrect =
-    diagnosis.toLowerCase().includes(currentCase.diagnosis.condition.toLowerCase()) ||
-    currentCase.diagnosis.condition.toLowerCase().includes(diagnosis.toLowerCase());
-
-  console.log('Submitting diagnosis...');
-  console.log('Diagnosis:', diagnosis);
-  console.log('Expected:', currentCase.diagnosis.condition);
-  console.log('Is correct:', isCorrect);
-
-  try {
-    const { user } = useAuthStore.getState(); // ✅ Use store directly
-    if (!user) {
-      console.error('No logged-in user found from auth store.');
+    const currentCase = get().currentCase;
+    if (!currentCase) {
+      console.warn('No current case found.');
       return false;
     }
 
-    const insertPayload = {
-      user_id: user.id,
-      case_data: currentCase,
-      diagnosis_submitted: diagnosis,
-      is_correct: isCorrect,
-      completed_at: new Date().toISOString(),
-    };
+    const isCorrect =
+      diagnosis.toLowerCase().includes(currentCase.diagnosis.condition.toLowerCase()) ||
+      currentCase.diagnosis.condition.toLowerCase().includes(diagnosis.toLowerCase());
 
-    console.log('Insert payload:', insertPayload);
+    try {
+      const { user } = useAuthStore.getState();
+      if (!user) {
+        console.error('No logged-in user found from auth store.');
+        return false;
+      }
 
-    const { error: insertError, data } = await supabase
-      .from('patient_cases')
-      .insert([insertPayload]);
+      // Save the case result
+      const { error: insertError } = await supabase
+        .from('patient_cases')
+        .insert([{
+          user_id: user.id,
+          case_data: currentCase,
+          diagnosis_submitted: diagnosis,
+          is_correct: isCorrect,
+          completed_at: new Date().toISOString(),
+        }]);
 
-    if (insertError) {
-      console.error('Error inserting diagnosis:', insertError);
-    } else {
-      console.log('Diagnosis successfully saved to patient_cases:', data);
+      if (insertError) {
+        console.error('Error inserting diagnosis:', insertError);
+      }
+
+      // Update user stats
+      await get().updateUserStats('simulatorCasesCompleted');
+      if (isCorrect) {
+        await get().updateUserStats('simulatorAccuracy');
+      }
+
+      return isCorrect;
+    } catch (err) {
+      console.error('Unexpected error during submitDiagnosis:', err);
+      return false;
     }
-
-    return isCorrect;
-  } catch (err) {
-    console.error('Unexpected error during submitDiagnosis:', err);
-    return false;
-  }
-},
-
+  },
 
   addFlashcard: async (card) => {
     try {
@@ -171,6 +171,11 @@ export const useDataStore = create<DataState>((set, get) => ({
             card.id === id ? { ...card, ...updates } : card
           ),
         }));
+
+        // Update stats when flashcard is reviewed
+        if (updates.lastReviewed) {
+          await get().updateUserStats('flashcardsReviewed');
+        }
       }
     } catch (error) {
       console.error('Error updating flashcard:', error);
@@ -314,121 +319,80 @@ export const useDataStore = create<DataState>((set, get) => ({
   },
 
   loadDeadlines: async () => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    const { data, error } = await supabase
-      .from('deadlines')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('due_date', { ascending: true });
+      const { data, error } = await supabase
+        .from('deadlines')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('due_date', { ascending: true });
 
-    let deadlines: Deadline[] = [];
+      let deadlines: Deadline[] = [];
 
-    if (!error && data && data.length > 0) {
-      deadlines = data.map(item => ({
-        id: item.id,
-        title: item.title,
-        description: item.description || '',
-        dueDate: new Date(item.due_date),
-        category: item.category as any,
-        priority: item.priority as any,
-        isCompleted: item.is_completed,
-        createdAt: new Date(item.created_at),
-      }));
-    } else {
-      // Default deadlines if none exist
-      const today = new Date();
-      const defaults = [
-        {
-    title: 'USMLE Step 1 Prep',
-    description: 'Start daily Qbank and First Aid review',
-    due_date: new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-    category: 'Study',
-    priority: 'High',
-    is_completed: false,
-  },
-  {
-    title: 'NEET PG 2025 Mock',
-    description: 'Finish Grand Test 1 and analyze errors',
-    due_date: new Date(today.getTime() + 45 * 24 * 60 * 60 * 1000).toISOString(),
-    category: 'Exam',
-    priority: 'High',
-    is_completed: false,
-  },
-  {
-    title: 'PLAB 1 Final Review',
-    description: 'Revise guidelines and high-yield topics',
-    due_date: new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000).toISOString(),
-    category: 'Exam',
-    priority: 'High',
-    is_completed: false,
-  },
-  {
-    title: 'AMC CAT Practice',
-    description: 'Complete 2 full-length timed mock exams',
-    due_date: new Date(today.getTime() + 75 * 24 * 60 * 60 * 1000).toISOString(),
-    category: 'Study',
-    priority: 'Medium',
-    is_completed: false,
-  },
-  {
-    title: 'Global Medical Hackathon Submission',
-    description: 'Submit prototype, pitch deck, and video demo',
-    due_date: new Date(today.getTime() + 15 * 24 * 60 * 60 * 1000).toISOString(),
-    category: 'Competition',
-    priority: 'High',
-    is_completed: false,
-  },
-  {
-    title: 'Case Competition Final',
-    description: 'Polish slides and rehearse final pitch',
-    due_date: new Date(today.getTime() + 20 * 24 * 60 * 60 * 1000).toISOString(),
-    category: 'Competition',
-    priority: 'Medium',
-    is_completed: false,
-  },
-  {
-    title: 'MCCQE Part I Prep',
-    description: 'Start reviewing ethics and communication skills section',
-    due_date: new Date(today.getTime() + 40 * 24 * 60 * 60 * 1000).toISOString(),
-    category: 'Study',
-    priority: 'Medium',
-    is_completed: false,
-  },
-  {
-    title: 'FMGE Revision Block 1',
-    description: 'Finish 1st half of Rapid Revision notes',
-    due_date: new Date(today.getTime() + 35 * 24 * 60 * 60 * 1000).toISOString(),
-    category: 'Study',
-    priority: 'High',
-    is_completed: false,
-  }
-      ];
+      if (!error && data && data.length > 0) {
+        deadlines = data.map(item => ({
+          id: item.id,
+          title: item.title,
+          description: item.description || '',
+          dueDate: new Date(item.due_date),
+          category: item.category as any,
+          priority: item.priority as any,
+          isCompleted: item.is_completed,
+          createdAt: new Date(item.created_at),
+        }));
+      } else {
+        // Default deadlines if none exist
+        const today = new Date();
+        const defaults = [
+          {
+            title: 'USMLE Step 1 Prep',
+            description: 'Start daily Qbank and First Aid review',
+            due_date: new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            category: 'Study',
+            priority: 'High',
+            is_completed: false,
+          },
+          {
+            title: 'NEET PG 2025 Mock',
+            description: 'Finish Grand Test 1 and analyze errors',
+            due_date: new Date(today.getTime() + 45 * 24 * 60 * 60 * 1000).toISOString(),
+            category: 'Exam',
+            priority: 'High',
+            is_completed: false,
+          },
+          {
+            title: 'PLAB 1 Final Review',
+            description: 'Revise guidelines and high-yield topics',
+            due_date: new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+            category: 'Exam',
+            priority: 'High',
+            is_completed: false,
+          },
+        ];
 
-      for (const d of defaults) {
-        await supabase.from('deadlines').insert({ user_id: user.id, ...d });
+        for (const d of defaults) {
+          await supabase.from('deadlines').insert({ user_id: user.id, ...d });
+        }
+
+        deadlines = defaults.map((d, i) => ({
+          id: `default-${i}`,
+          title: d.title,
+          description: d.description,
+          dueDate: new Date(d.due_date),
+          category: d.category as any,
+          priority: d.priority as any,
+          isCompleted: d.is_completed,
+          createdAt: new Date(),
+        }));
       }
 
-      deadlines = defaults.map((d, i) => ({
-        id: `default-${i}`,
-        title: d.title,
-        description: d.description,
-        dueDate: new Date(d.due_date),
-        category: d.category as any,
-        priority: d.priority as any,
-        isCompleted: d.is_completed,
-        createdAt: new Date(),
-      }));
+      set({ deadlines });
+    } catch (error) {
+      console.error('Error loading deadlines:', error);
     }
-
-    set({ deadlines });
-  } catch (error) {
-    console.error('Error loading deadlines:', error);
-  }
-},
-
+  },
 
   addMnemonic: async (mnemonic) => {
     try {
@@ -462,154 +426,122 @@ export const useDataStore = create<DataState>((set, get) => ({
         };
         
         set(state => ({ mnemonics: [...state.mnemonics, newMnemonic] }));
+        
+        // Update stats
+        await get().updateUserStats('mnemonicsCreated');
       }
     } catch (error) {
       console.error('Error adding mnemonic:', error);
     }
   },
 
-  generateMnemonic: (term: string) => {
-    // Mock AI mnemonic generation
-    const templates = [
-      `Remember ${term} with: "Medical Students Always Remember Perfect Examples"`,
-      `${term} mnemonic: "Doctors Never Forget Important Medical Knowledge"`,
-      `Use this for ${term}: "Students Practice Medicine With Great Dedication"`,
-    ];
-    return templates[Math.floor(Math.random() * templates.length)];
-  },
+  generateAIMnemonic: async (term: string, style: 'funny' | 'professional' | 'creative' = 'funny') => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
 
-  
-loadMnemonics: async () => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('mnemonics')
-      .select('*')
-      .or(`user_id.eq.${user.id},user_id.eq.00000000-0000-0000-0000-000000000000`)
-      .order('created_at', { ascending: false });
-
-    let mnemonics: Mnemonic[] = [];
-
-    if (!error && data && data.length > 0) {
-      mnemonics = data.map(item => ({
-        id: item.id,
-        term: item.term,
-        mnemonic: item.mnemonic,
-        explanation: item.explanation || '',
-        category: item.category,
-        tags: item.tags,
-        isCustom: item.is_custom,
-        createdAt: new Date(item.created_at),
-      }));
-    } else {
-      // Defaults if none exist
-      const defaults = [
-        {
-          term: 'Cranial Nerves',
-          mnemonic: 'On Old Olympus Towering Tops A Finn And German Viewed Some Hops',
-          explanation: 'Mnemonic for the 12 cranial nerves in order: Olfactory, Optic, Oculomotor, Trochlear, Trigeminal, Abducens, Facial, Auditory/Vestibulocochlear, Glossopharyngeal, Vagus, Spinal Accessory, Hypoglossal',
-          category: 'Neurology',
-          tags: ['anatomy', 'nerves'],
-          is_custom: false
-        },
-        {
-          term: 'Carpal Bones',
-          mnemonic: 'Some Lovers Try Positions That They Can\'t Handle',
-          explanation: 'Mnemonic for carpal bones: Scaphoid, Lunate, Triquetrum, Pisiform, Trapezium, Trapezoid, Capitate, Hamate',
-          category: 'Anatomy',
-          tags: ['bones', 'upper limb'],
-          is_custom: false
-        },
-        {
-          term: 'Heart Valve Auscultation Points',
-          mnemonic: 'All Patients Take Medicine',
-          explanation: 'Aortic, Pulmonic, Tricuspid, Mitral locations',
-          category: 'Cardiology',
-          tags: ['physical exam', 'auscultation'],
-          is_custom: false
-        },
-        {
-          term: 'Thyroid Symptoms',
-          mnemonic: 'SWEATING',
-          explanation: 'Sweating, Weight loss, Emotional lability, Appetite, Tremor, Irritability, Nervousness, Goiter',
-          category: 'Endocrinology',
-          tags: ['hyperthyroidism', 'symptoms'],
-          is_custom: false
-        },
-        {
-          term: 'Risk Factors for Deep Vein Thrombosis',
-          mnemonic: 'VIRCHOW',
-          explanation: 'Venous stasis, Injury, Reduced flow, Congenital, Hypercoagulability, Obstruction, Women',
-          category: 'Hematology',
-          tags: ['dvt', 'risk factors'],
-          is_custom: false
-        },
-        {
-          term: 'Tarsal Bones',
-          mnemonic: 'Tall Centers Never Take Shots From Corners',
-          explanation: 'Talus, Calcaneus, Navicular, Cuneiforms, Cuboid',
-          category: 'Anatomy',
-          tags: ['bones', 'lower limb'],
-          is_custom: false
-        },
-        {
-          term: 'Liver Function Tests',
-          mnemonic: 'GET LIPID',
-          explanation: 'Gamma GT, Enzymes, Total protein, LDH, INR, Platelets, Immunoglobulins, Direct bilirubin',
-          category: 'Gastroenterology',
-          tags: ['lft', 'blood tests'],
-          is_custom: false
-        },
-        {
-          term: 'Causes of Pancreatitis',
-          mnemonic: 'I GET SMASHED',
-          explanation: 'Idiopathic, Gallstones, Ethanol, Trauma, Steroids, Mumps, Autoimmune, Scorpion sting, Hyperlipidemia/calcemia, ERCP, Drugs',
-          category: 'Gastroenterology',
-          tags: ['pancreatitis', 'etiology'],
-          is_custom: false
-        },
-        {
-          term: 'Heart Murmurs',
-          mnemonic: 'MR PASS MVP',
-          explanation: 'Mitral Regurgitation, Physiologic, Aortic Stenosis, Systolic. MVP is Mitral Valve Prolapse.',
-          category: 'Cardio',
-          tags: ['murmurs', 'cardiology'],
-          is_custom: false,
-        },
-        {
-          term: 'Causes of Anion Gap Metabolic Acidosis',
-          mnemonic: 'MUDPILES',
-          explanation: 'Methanol, Uremia, DKA, Propylene glycol, Iron/Isoniazid, Lactic acidosis, Ethylene glycol, Salicylates',
-          category: 'Pathology',
-          tags: ['acid-base', 'metabolism'],
-          is_custom: false,
-        },
-      ];
-
-      for (const m of defaults) {
-        await supabase.from('mnemonics').insert({ user_id: user.id, ...m });
+      let result;
+      
+      try {
+        // Try OpenAI first
+        result = await generateMnemonic({ term, style });
+      } catch (error) {
+        console.warn('OpenAI generation failed, using fallback:', error);
+        // Use fallback if OpenAI fails
+        result = generateMnemonicFallback(term, style);
       }
 
-      mnemonics = defaults.map((m, i) => ({
-        id: `default-${i}`,
-        term: m.term,
-        mnemonic: m.mnemonic,
-        explanation: m.explanation,
-        category: m.category,
-        tags: m.tags,
-        isCustom: m.is_custom,
-        createdAt: new Date(),
-      }));
+      // Log the AI generation
+      await supabase
+        .from('ai_generations')
+        .insert({
+          user_id: user.id,
+          generation_type: 'mnemonic',
+          input_text: term,
+          output_text: `${result.mnemonic}\n\n${result.explanation}`,
+          tokens_used: result.tokensUsed,
+        });
+
+      // Update stats
+      await get().updateUserStats('aiGenerationsUsed');
+
+      return {
+        mnemonic: result.mnemonic,
+        explanation: result.explanation,
+      };
+    } catch (error) {
+      console.error('Error generating AI mnemonic:', error);
+      throw error;
     }
+  },
 
-    set({ mnemonics });
-  } catch (error) {
-    console.error('Error loading mnemonics:', error);
-  }
-},
+  loadMnemonics: async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
+      const { data, error } = await supabase
+        .from('mnemonics')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      let mnemonics: Mnemonic[] = [];
+
+      if (!error && data && data.length > 0) {
+        mnemonics = data.map(item => ({
+          id: item.id,
+          term: item.term,
+          mnemonic: item.mnemonic,
+          explanation: item.explanation || '',
+          category: item.category,
+          tags: item.tags,
+          isCustom: item.is_custom,
+          createdAt: new Date(item.created_at),
+        }));
+      } else {
+        // Load default mnemonics
+        const defaults = [
+          {
+            term: 'Cranial Nerves',
+            mnemonic: 'On Old Olympus Towering Tops A Finn And German Viewed Some Hops',
+            explanation: 'Mnemonic for the 12 cranial nerves in order: Olfactory, Optic, Oculomotor, Trochlear, Trigeminal, Abducens, Facial, Auditory/Vestibulocochlear, Glossopharyngeal, Vagus, Spinal Accessory, Hypoglossal',
+            category: 'Neurology',
+            tags: ['anatomy', 'nerves'],
+            is_custom: false
+          },
+          {
+            term: 'Carpal Bones',
+            mnemonic: 'Some Lovers Try Positions That They Can\'t Handle',
+            explanation: 'Mnemonic for carpal bones: Scaphoid, Lunate, Triquetrum, Pisiform, Trapezium, Trapezoid, Capitate, Hamate',
+            category: 'Anatomy',
+            tags: ['bones', 'upper limb'],
+            is_custom: false
+          },
+          // Add more defaults...
+        ];
+
+        for (const m of defaults) {
+          await supabase.from('mnemonics').insert({ user_id: user.id, ...m });
+        }
+
+        mnemonics = defaults.map((m, i) => ({
+          id: `default-${i}`,
+          term: m.term,
+          mnemonic: m.mnemonic,
+          explanation: m.explanation,
+          category: m.category,
+          tags: m.tags,
+          isCustom: m.is_custom,
+          createdAt: new Date(),
+        }));
+      }
+
+      set({ mnemonics });
+    } catch (error) {
+      console.error('Error loading mnemonics:', error);
+    }
+  },
 
   startStudySession: async (type) => {
     try {
@@ -673,10 +605,59 @@ loadMnemonics: async () => {
               : session
           ),
         }));
+
+        // Update study hours
+        const duration = Math.round((new Date().getTime() - new Date().getTime()) / (1000 * 60 * 60));
+        await get().updateUserStats('totalStudyHours', duration);
       }
     } catch (error) {
       console.error('Error ending study session:', error);
     }
+  },
+
+  updateUserStats: async (statType: string, incrementValue: number = 1) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase.rpc('update_user_stats', {
+        user_id_param: user.id,
+        stat_type: statType,
+        increment_value: incrementValue,
+      });
+
+      // Update local auth store
+      const { user: currentUser } = useAuthStore.getState();
+      if (currentUser) {
+        const updatedStats = {
+          ...currentUser.stats,
+          [statType]: (currentUser.stats[statType as keyof typeof currentUser.stats] || 0) + incrementValue,
+        };
+        useAuthStore.getState().updateUser({ stats: updatedStats });
+      }
+    } catch (error) {
+      console.error('Error updating user stats:', error);
+    }
+  },
+
+  getUserStats: async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('stats')
+        .eq('id', user.id)
+        .single();
+
+      if (!error && data) {
+        return data.stats;
+      }
+    } catch (error) {
+      console.error('Error getting user stats:', error);
+    }
+    return null;
   },
 
   loadAllData: async () => {

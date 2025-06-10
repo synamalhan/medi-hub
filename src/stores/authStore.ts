@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { User } from '../types';
 import { supabase } from '../lib/supabase';
+import { identifyUser, resetUser } from '../lib/revenuecat';
 import type { Database } from '../lib/supabase';
 
 interface AuthState {
@@ -12,6 +13,7 @@ interface AuthState {
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
   initialize: () => Promise<void>;
+  refreshUserStats: () => Promise<void>;
 }
 
 const transformSupabaseUser = (profile: Database['public']['Tables']['profiles']['Row']): User => ({
@@ -44,6 +46,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         if (profile) {
           const user = transformSupabaseUser(profile);
           set({ user, isAuthenticated: true });
+          
+          // Initialize RevenueCat with user ID
+          try {
+            await identifyUser(user.id);
+          } catch (error) {
+            console.warn('RevenueCat initialization failed:', error);
+          }
         }
       }
     } catch (error) {
@@ -72,6 +81,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         if (profile) {
           const user = transformSupabaseUser(profile);
           set({ user, isAuthenticated: true, isLoading: false });
+          
+          // Initialize RevenueCat
+          try {
+            await identifyUser(user.id);
+          } catch (error) {
+            console.warn('RevenueCat initialization failed:', error);
+          }
+          
           return true;
         }
       }
@@ -113,10 +130,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             flashcardsReviewed: 0,
             streakDays: 0,
             totalStudyHours: 0,
+            simulatorCasesCompleted: 0,
+            mnemonicsCreated: 0,
+            aiGenerationsUsed: 0,
           },
         };
         
         set({ user, isAuthenticated: true, isLoading: false });
+        
+        // Initialize RevenueCat
+        try {
+          await identifyUser(user.id);
+        } catch (error) {
+          console.warn('RevenueCat initialization failed:', error);
+        }
+        
         return true;
       }
     } catch (error) {
@@ -128,6 +156,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: async () => {
+    try {
+      await resetUser(); // Reset RevenueCat user
+    } catch (error) {
+      console.warn('RevenueCat reset failed:', error);
+    }
+    
     await supabase.auth.signOut();
     set({ user: null, isAuthenticated: false });
   },
@@ -156,6 +190,30 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.error('Error updating user:', error);
     }
   },
+
+  refreshUserStats: async () => {
+    const { user } = get();
+    if (!user) return;
+
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('stats, is_pro, subscription_status, subscription_expires_at')
+        .eq('id', user.id)
+        .single();
+
+      if (profile) {
+        const updatedUser = {
+          ...user,
+          stats: profile.stats,
+          isPro: profile.is_pro,
+        };
+        set({ user: updatedUser });
+      }
+    } catch (error) {
+      console.error('Error refreshing user stats:', error);
+    }
+  },
 }));
 
 // Listen for auth changes
@@ -170,8 +228,20 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     if (profile) {
       const user = transformSupabaseUser(profile);
       useAuthStore.setState({ user, isAuthenticated: true });
+      
+      // Initialize RevenueCat
+      try {
+        await identifyUser(user.id);
+      } catch (error) {
+        console.warn('RevenueCat initialization failed:', error);
+      }
     }
   } else if (event === 'SIGNED_OUT') {
+    try {
+      await resetUser();
+    } catch (error) {
+      console.warn('RevenueCat reset failed:', error);
+    }
     useAuthStore.setState({ user: null, isAuthenticated: false });
   }
 });

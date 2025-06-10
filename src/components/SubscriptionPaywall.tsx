@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Award, BarChart3, Brain, TrendingUp, X, CreditCard, Lock } from 'lucide-react';
+import { Award, BarChart3, Brain, TrendingUp, X, CreditCard, Lock, Sparkles, Zap, CheckCircle } from 'lucide-react';
 import { getPackages, purchasePackage } from '../lib/revenuecat';
+import { useAuthStore } from '../stores/authStore';
 import toast from 'react-hot-toast';
 
 interface SubscriptionPaywallProps {
@@ -22,6 +23,7 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
   onSuccess,
   onClose 
 }) => {
+  const { refreshUserStats } = useAuthStore();
   const [offerings, setOfferings] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPackage, setSelectedPackage] = useState<any>(null);
@@ -56,6 +58,10 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
     try {
       setIsLoading(true);
       await purchasePackage(packageToPurchase);
+      
+      // Refresh user stats to reflect Pro status
+      await refreshUserStats();
+      
       toast.success('Successfully upgraded to Pro!');
       onSuccess?.();
     } catch (error) {
@@ -72,10 +78,6 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
 
     try {
       setIsLoading(true);
-      // In a real application, you would:
-      // 1. Validate the payment information
-      // 2. Process the payment through a secure payment processor
-      // 3. Only then call the RevenueCat purchase endpoint
       await handlePurchase(selectedPackage);
     } catch (error) {
       console.error('Payment failed:', error);
@@ -130,10 +132,10 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
               </span>
             </div>
             <h3 className="text-lg font-bold text-gray-900 mb-2">
-              Unlock Advanced Analytics
+              Unlock Advanced Features
             </h3>
             <p className="text-gray-600 mb-4">
-              Get detailed performance insights and personalized learning paths.
+              Get unlimited AI generations, advanced analytics, and personalized learning paths.
             </p>
             {selectedPackage && (
               <button 
@@ -146,12 +148,45 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
             )}
           </div>
           <div className="hidden md:block">
-            <BarChart3 className="w-12 h-12 text-yellow-400" />
+            <Sparkles className="w-12 h-12 text-yellow-400" />
           </div>
         </div>
       </div>
     );
   }
+
+  const proFeatures = [
+    {
+      icon: Sparkles,
+      title: 'Unlimited AI Generations',
+      description: 'Generate unlimited funny, professional, and creative mnemonics with AI'
+    },
+    {
+      icon: BarChart3,
+      title: 'Advanced Analytics',
+      description: 'Track performance across all specialties with detailed insights'
+    },
+    {
+      icon: TrendingUp,
+      title: 'Progress Insights',
+      description: 'Visualize your learning journey with comprehensive reports'
+    },
+    {
+      icon: Brain,
+      title: 'AI Study Recommendations',
+      description: 'Get personalized study suggestions based on your performance'
+    },
+    {
+      icon: Zap,
+      title: 'Priority Support',
+      description: 'Get faster response times and dedicated customer support'
+    },
+    {
+      icon: Award,
+      title: 'Exclusive Content',
+      description: 'Access premium study materials and advanced case studies'
+    }
+  ];
 
   return (
     <div className="space-y-8">
@@ -170,26 +205,33 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
       <div className="px-6">
         {!showPaymentForm ? (
           <>
-            <div className="grid md:grid-cols-3 gap-8 mb-8">
-              <div className="text-center">
-                <BarChart3 className="w-12 h-12 text-yellow-600 mx-auto mb-3" />
-                <h3 className="font-semibold text-gray-900 mb-2">Advanced Analytics</h3>
-                <p className="text-gray-600 text-sm">Track performance across all specialties</p>
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Award className="w-8 h-8 text-white" />
               </div>
-              <div className="text-center">
-                <TrendingUp className="w-12 h-12 text-yellow-600 mx-auto mb-3" />
-                <h3 className="font-semibold text-gray-900 mb-2">Progress Insights</h3>
-                <p className="text-gray-600 text-sm">Visualize your learning journey</p>
-              </div>
-              <div className="text-center">
-                <Brain className="w-12 h-12 text-yellow-600 mx-auto mb-3" />
-                <h3 className="font-semibold text-gray-900 mb-2">AI Recommendations</h3>
-                <p className="text-gray-600 text-sm">Get personalized study suggestions</p>
-              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                Unlock Your Full Potential
+              </h3>
+              <p className="text-gray-600 max-w-2xl mx-auto">
+                Take your medical education to the next level with our comprehensive Pro features designed to accelerate your learning.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {proFeatures.map((feature, index) => {
+                const Icon = feature.icon;
+                return (
+                  <div key={index} className="p-4 bg-gray-50 rounded-lg">
+                    <Icon className="w-8 h-8 text-primary-600 mb-3" />
+                    <h4 className="font-semibold text-gray-900 mb-2">{feature.title}</h4>
+                    <p className="text-sm text-gray-600">{feature.description}</p>
+                  </div>
+                );
+              })}
             </div>
             
             {offerings?.current?.availablePackages && (
-              <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+              <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto mb-8">
                 {offerings.current.availablePackages.map((pkg: any) => (
                   <div 
                     key={pkg.identifier}
@@ -200,23 +242,41 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
                     }`}
                     onClick={() => setSelectedPackage(pkg)}
                   >
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">{pkg.product.title}</h3>
-                    <p className="text-gray-600 mb-4">{pkg.product.description}</p>
-                    <p className="text-3xl font-bold text-gray-900 mb-6">{pkg.product.priceString}</p>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowPaymentForm(true);
-                      }}
-                      className={`w-full py-3 px-6 rounded-lg font-medium transition-colors ${
-                        selectedPackage?.identifier === pkg.identifier
-                          ? 'bg-primary-600 text-white hover:bg-primary-700'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                      disabled={isLoading}
-                    >
-                      {isLoading ? 'Processing...' : 'Subscribe Now'}
-                    </button>
+                    <div className="text-center">
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">{pkg.product.title}</h3>
+                      <p className="text-gray-600 mb-4">{pkg.product.description}</p>
+                      <p className="text-3xl font-bold text-gray-900 mb-6">{pkg.product.priceString}</p>
+                      
+                      <div className="space-y-2 mb-6">
+                        <div className="flex items-center text-sm text-gray-600">
+                          <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                          <span>Unlimited AI generations</span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-600">
+                          <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                          <span>Advanced analytics</span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-600">
+                          <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                          <span>Priority support</span>
+                        </div>
+                      </div>
+                      
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowPaymentForm(true);
+                        }}
+                        className={`w-full py-3 px-6 rounded-lg font-medium transition-colors ${
+                          selectedPackage?.identifier === pkg.identifier
+                            ? 'bg-primary-600 text-white hover:bg-primary-700'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                        disabled={isLoading}
+                      >
+                        {isLoading ? 'Processing...' : 'Subscribe Now'}
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -339,4 +399,4 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
       </div>
     </div>
   );
-}; 
+};

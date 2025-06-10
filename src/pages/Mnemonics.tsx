@@ -11,13 +11,19 @@ import {
   Star,
   Copy,
   Check,
-  Sparkles
+  Sparkles,
+  Wand2,
+  Smile,
+  Briefcase,
+  Palette
 } from 'lucide-react';
 import { useDataStore } from '../stores/dataStore';
+import { useAuthStore } from '../stores/authStore';
 import toast from 'react-hot-toast';
 
 const Mnemonics: React.FC = () => {
-  const { mnemonics, addMnemonic, generateMnemonic } = useDataStore();
+  const { mnemonics, addMnemonic, generateAIMnemonic } = useDataStore();
+  const { user } = useAuthStore();
   
   const [currentMode, setCurrentMode] = useState<'browse' | 'create' | 'generate'>('browse');
   const [searchTerm, setSearchTerm] = useState('');
@@ -32,8 +38,15 @@ const Mnemonics: React.FC = () => {
     tags: '',
   });
 
-  const [generateTerm, setGenerateTerm] = useState('');
-  const [generatedMnemonic, setGeneratedMnemonic] = useState('');
+  const [generateForm, setGenerateForm] = useState({
+    term: '',
+    style: 'funny' as 'funny' | 'professional' | 'creative',
+  });
+  
+  const [generatedMnemonic, setGeneratedMnemonic] = useState<{
+    mnemonic: string;
+    explanation: string;
+  } | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
   const categories = Array.from(new Set(mnemonics.map(m => m.category)));
@@ -45,81 +58,6 @@ const Mnemonics: React.FC = () => {
     const matchesCategory = !selectedCategory || mnemonic.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
-
-  const defaultMnemonics = [
-  {
-    id: '1',
-    term: 'Cranial Nerves',
-    mnemonic: 'On Old Olympus Towering Tops A Finn And German Viewed Some Hops',
-    explanation: 'Mnemonic for the 12 cranial nerves in order: Olfactory, Optic, Oculomotor, Trochlear, Trigeminal, Abducens, Facial, Auditory/Vestibulocochlear, Glossopharyngeal, Vagus, Spinal Accessory, Hypoglossal',
-    category: 'Neurology',
-    tags: ['anatomy', 'nerves'],
-    isCustom: false
-  },
-  {
-    id: '2',
-    term: 'Carpal Bones',
-    mnemonic: 'Some Lovers Try Positions That They Can\'t Handle',
-    explanation: 'Mnemonic for carpal bones from lateral to medial (proximal row then distal row): Scaphoid, Lunate, Triquetrum, Pisiform, Trapezium, Trapezoid, Capitate, Hamate',
-    category: 'Anatomy',
-    tags: ['bones', 'upper limb'],
-    isCustom: false
-  },
-  {
-    id: '3',
-    term: 'Heart Valve Auscultation Points',
-    mnemonic: 'All Patients Take Medicine',
-    explanation: 'Aortic (2nd right ICS), Pulmonic (2nd left ICS), Tricuspid (4th left ICS), Mitral (5th left ICS, midclavicular line)',
-    category: 'Cardiology',
-    tags: ['physical exam', 'auscultation'],
-    isCustom: false
-  },
-  {
-    id: '4',
-    term: 'Thyroid Symptoms',
-    mnemonic: 'SWEATING',
-    explanation: 'Sweating, Weight loss, Emotional lability, Appetite increased, Tremor, Irritability, Nervousness, Goiter',
-    category: 'Endocrinology',
-    tags: ['hyperthyroidism', 'symptoms'],
-    isCustom: false
-  },
-  {
-    id: '5',
-    term: 'Risk Factors for Deep Vein Thrombosis',
-    mnemonic: 'VIRCHOW',
-    explanation: 'Venous stasis, Injury to vessel, Reduced flow, Congenital, Hypercoagulability, Obstruction, Women (pregnancy/OCP)',
-    category: 'Hematology',
-    tags: ['dvt', 'risk factors'],
-    isCustom: false
-  },
-  {
-    id: '6',
-    term: 'Tarsal Bones',
-    mnemonic: 'Tall Centers Never Take Shots From Corners',
-    explanation: 'Mnemonic for tarsal bones: Talus, Calcaneus, Navicular, Third cuneiform, Second cuneiform, First cuneiform, Cuboid',
-    category: 'Anatomy',
-    tags: ['bones', 'lower limb'],
-    isCustom: false
-  },
-  {
-    id: '7',
-    term: 'Liver Function Tests',
-    mnemonic: 'GET LIPID',
-    explanation: 'Gamma GT, Enzymes (ALT/AST), Total protein, LDH, INR, Platelets, Immunoglobulins, Direct bilirubin',
-    category: 'Gastroenterology',
-    tags: ['lft', 'blood tests'],
-    isCustom: false
-  },
-  {
-    id: '8',
-    term: 'Causes of Pancreatitis',
-    mnemonic: 'I GET SMASHED',
-    explanation: 'Idiopathic, Gallstones, Ethanol, Trauma, Steroids, Mumps, Autoimmune, Scorpion sting, Hyperlipidemia/calcemia, ERCP, Drugs',
-    category: 'Gastroenterology',
-    tags: ['pancreatitis', 'etiology'],
-    isCustom: false
-  }
-];
 
   const handleCreateMnemonic = () => {
     if (!newMnemonic.term.trim() || !newMnemonic.mnemonic.trim()) {
@@ -135,6 +73,7 @@ const Mnemonics: React.FC = () => {
       explanation: newMnemonic.explanation,
       category: newMnemonic.category || 'General',
       tags,
+      isCustom: true,
     });
 
     setNewMnemonic({
@@ -150,21 +89,29 @@ const Mnemonics: React.FC = () => {
   };
 
   const handleGenerateMnemonic = async () => {
-    if (!generateTerm.trim()) {
+    if (!generateForm.term.trim()) {
       toast.error('Please enter a term to generate a mnemonic for');
+      return;
+    }
+
+    // Check if user has reached generation limit (for free users)
+    if (!user?.isPro && (user?.stats?.aiGenerationsUsed || 0) >= 5) {
+      toast.error('Free users are limited to 5 AI generations per month. Upgrade to Pro for unlimited access!');
       return;
     }
 
     setIsGenerating(true);
     
-    // Simulate AI generation delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const generated = generateMnemonic(generateTerm);
-    setGeneratedMnemonic(generated);
-    setIsGenerating(false);
-    
-    toast.success('Mnemonic generated!');
+    try {
+      const result = await generateAIMnemonic(generateForm.term, generateForm.style);
+      setGeneratedMnemonic(result);
+      toast.success('AI mnemonic generated!');
+    } catch (error) {
+      console.error('Error generating mnemonic:', error);
+      toast.error('Failed to generate mnemonic. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleCopyMnemonic = (text: string, id: string) => {
@@ -176,20 +123,39 @@ const Mnemonics: React.FC = () => {
   };
 
   const saveGeneratedMnemonic = () => {
-    if (!generateTerm.trim() || !generatedMnemonic.trim()) return;
+    if (!generateForm.term.trim() || !generatedMnemonic) return;
 
     addMnemonic({
-      term: generateTerm,
-      mnemonic: generatedMnemonic,
-      explanation: `AI-generated mnemonic for ${generateTerm}`,
+      term: generateForm.term,
+      mnemonic: generatedMnemonic.mnemonic,
+      explanation: generatedMnemonic.explanation,
       category: 'AI Generated',
-      tags: ['ai-generated'],
+      tags: ['ai-generated', generateForm.style],
+      isCustom: true,
     });
 
-    setGenerateTerm('');
-    setGeneratedMnemonic('');
+    setGenerateForm({ term: '', style: 'funny' });
+    setGeneratedMnemonic(null);
     toast.success('Generated mnemonic saved!');
     setCurrentMode('browse');
+  };
+
+  const getStyleIcon = (style: string) => {
+    switch (style) {
+      case 'funny': return Smile;
+      case 'professional': return Briefcase;
+      case 'creative': return Palette;
+      default: return Sparkles;
+    }
+  };
+
+  const getStyleColor = (style: string) => {
+    switch (style) {
+      case 'funny': return 'from-yellow-500 to-orange-500';
+      case 'professional': return 'from-blue-500 to-indigo-500';
+      case 'creative': return 'from-purple-500 to-pink-500';
+      default: return 'from-green-500 to-teal-500';
+    }
   };
 
   return (
@@ -217,7 +183,7 @@ const Mnemonics: React.FC = () => {
           >
             Browse ({mnemonics.length})
           </button>
-          {/* <button
+          <button
             onClick={() => setCurrentMode('generate')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
               currentMode === 'generate'
@@ -225,9 +191,14 @@ const Mnemonics: React.FC = () => {
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            <Sparkles className="w-4 h-4" />
+            <Wand2 className="w-4 h-4" />
             <span>AI Generate</span>
-          </button> */}
+            {!user?.isPro && (
+              <span className="text-xs bg-yellow-400 text-yellow-900 px-2 py-1 rounded-full">
+                {5 - (user?.stats?.aiGenerationsUsed || 0)}/5
+              </span>
+            )}
+          </button>
           <button
             onClick={() => setCurrentMode('create')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
@@ -267,9 +238,9 @@ const Mnemonics: React.FC = () => {
           <div className="text-sm text-gray-600">Custom Created</div>
         </div>
         <div className="card text-center">
-          <Zap className="w-8 h-8 text-green-600 mx-auto mb-2" />
-          <div className="text-2xl font-bold text-gray-900">95%</div>
-          <div className="text-sm text-gray-600">Retention Rate</div>
+          <Sparkles className="w-8 h-8 text-green-600 mx-auto mb-2" />
+          <div className="text-2xl font-bold text-gray-900">{user?.stats?.aiGenerationsUsed || 0}</div>
+          <div className="text-sm text-gray-600">AI Generated</div>
         </div>
       </motion.div>
 
@@ -318,9 +289,14 @@ const Mnemonics: React.FC = () => {
                       <Lightbulb className="w-5 h-5 text-yellow-600" />
                       <span className="font-semibold text-gray-900">{mnemonic.term}</span>
                     </div>
-                    {mnemonic.isCustom && (
-                      <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                    )}
+                    <div className="flex items-center space-x-1">
+                      {mnemonic.isCustom && (
+                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                      )}
+                      {mnemonic.tags.includes('ai-generated') && (
+                        <Sparkles className="w-4 h-4 text-purple-500" />
+                      )}
+                    </div>
                   </div>
                   
                   <div className="mb-4">
@@ -383,10 +359,19 @@ const Mnemonics: React.FC = () => {
             <div className="card">
               <div className="text-center mb-6">
                 <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Sparkles className="w-8 h-8 text-white" />
+                  <Wand2 className="w-8 h-8 text-white" />
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">AI Mnemonic Generator</h2>
                 <p className="text-gray-600">Let AI create powerful memory aids for any medical term</p>
+                
+                {!user?.isPro && (
+                  <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      Free users get 5 AI generations per month. 
+                      You have <strong>{5 - (user?.stats?.aiGenerationsUsed || 0)}</strong> remaining.
+                    </p>
+                  </div>
+                )}
               </div>
               
               <div className="space-y-6">
@@ -396,16 +381,41 @@ const Mnemonics: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={generateTerm}
-                    onChange={(e) => setGenerateTerm(e.target.value)}
+                    value={generateForm.term}
+                    onChange={(e) => setGenerateForm({ ...generateForm, term: e.target.value })}
                     className="w-full p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="e.g., Cranial nerves, Heart murmurs, Antibiotics..."
                   />
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Choose generation style
+                  </label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {(['funny', 'professional', 'creative'] as const).map((style) => {
+                      const Icon = getStyleIcon(style);
+                      return (
+                        <button
+                          key={style}
+                          onClick={() => setGenerateForm({ ...generateForm, style })}
+                          className={`p-4 rounded-lg border-2 transition-all ${
+                            generateForm.style === style
+                              ? 'border-primary-500 bg-primary-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <Icon className="w-6 h-6 mx-auto mb-2 text-gray-600" />
+                          <span className="text-sm font-medium capitalize">{style}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
                 
                 <button
                   onClick={handleGenerateMnemonic}
-                  disabled={!generateTerm.trim() || isGenerating}
+                  disabled={!generateForm.term.trim() || isGenerating || (!user?.isPro && (user?.stats?.aiGenerationsUsed || 0) >= 5)}
                   className="w-full btn-primary flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isGenerating ? (
@@ -416,7 +426,7 @@ const Mnemonics: React.FC = () => {
                   ) : (
                     <>
                       <Brain className="w-5 h-5" />
-                      <span>Generate Mnemonic</span>
+                      <span>Generate {generateForm.style} Mnemonic</span>
                     </>
                   )}
                 </button>
@@ -425,18 +435,21 @@ const Mnemonics: React.FC = () => {
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200"
+                    className={`p-6 bg-gradient-to-r ${getStyleColor(generateForm.style)} bg-opacity-10 rounded-lg border border-opacity-20`}
                   >
                     <div className="flex items-center space-x-2 mb-3">
-                      <Zap className="w-5 h-5 text-green-600" />
-                      <span className="font-semibold text-green-800">Generated Mnemonic</span>
+                      <Sparkles className="w-5 h-5 text-purple-600" />
+                      <span className="font-semibold text-purple-800">Generated {generateForm.style} Mnemonic</span>
                     </div>
-                    <div className="text-lg font-medium text-gray-900 mb-4 font-mono">
-                      "{generatedMnemonic}"
+                    <div className="text-lg font-medium text-gray-900 mb-3 font-mono">
+                      "{generatedMnemonic.mnemonic}"
                     </div>
+                    <p className="text-gray-700 text-sm mb-4 leading-relaxed">
+                      {generatedMnemonic.explanation}
+                    </p>
                     <div className="flex space-x-3">
                       <button
-                        onClick={() => handleCopyMnemonic(generatedMnemonic, 'generated')}
+                        onClick={() => handleCopyMnemonic(generatedMnemonic.mnemonic, 'generated')}
                         className="btn-secondary flex items-center space-x-2"
                       >
                         <Copy className="w-4 h-4" />
