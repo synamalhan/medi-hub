@@ -57,7 +57,7 @@ export type Database = {
         };
         Insert: {
           user_id: string;
-          case_data: any;
+          case_data: string ;
           diagnosis_submitted?: string | null;
           is_correct?: boolean | null;
           completed_at?: string | null;
@@ -86,7 +86,7 @@ export type Database = {
           user_id: string;
           front: string;
           back: string;
-          tags?: string[];
+          // tags?: string[];
           difficulty?: number;
           last_reviewed?: string;
           next_review?: string;

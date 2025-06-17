@@ -11,6 +11,7 @@ export interface User {
     flashcardsReviewed: number;
     streakDays: number;
     totalStudyHours: number;
+    researchSummariesCreated: number;
   };
 }
 

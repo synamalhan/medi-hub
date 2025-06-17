@@ -19,20 +19,20 @@ interface DataState {
   submitDiagnosis: (diagnosis: string) => Promise<boolean>;
   
   // Flashcards
-  addFlashcard: (card: Omit<Flashcard, 'id' | 'createdAt'>) => Promise<void>;
+  addFlashcard: (card: Flashcard) => Promise<void>;
   updateFlashcard: (id: string, updates: Partial<Flashcard>) => Promise<void>;
   deleteFlashcard: (id: string) => Promise<void>;
   getFlashcardsForReview: () => Flashcard[];
   loadFlashcards: () => Promise<void>;
   
   // Deadlines
-  addDeadline: (deadline: Omit<Deadline, 'id' | 'createdAt'>) => Promise<void>;
+  addDeadline: (deadline: Deadline) => Promise<void>;
   updateDeadline: (id: string, updates: Partial<Deadline>) => Promise<void>;
   deleteDeadline: (id: string) => Promise<void>;
   loadDeadlines: () => Promise<void>;
   
   // Mnemonics
-  addMnemonic: (mnemonic: Omit<Mnemonic, 'id' | 'createdAt'>) => Promise<void>;
+  addMnemonic: (mnemonic: Mnemonic) => Promise<void>;
   generateAIMnemonic: (term: string, style?: 'funny' | 'professional' | 'creative') => Promise<{ mnemonic: string; explanation: string; }>;
   loadMnemonics: () => Promise<void>;
   
@@ -71,28 +71,34 @@ export const useDataStore = create<DataState>((set, get) => ({
     const isCorrect =
       diagnosis.toLowerCase().includes(currentCase.diagnosis.condition.toLowerCase()) ||
       currentCase.diagnosis.condition.toLowerCase().includes(diagnosis.toLowerCase());
+    
+    console.log('Diagnosis submitted:', diagnosis, 'Correct:', isCorrect);
 
     try {
+      console.log('Submitting diagnosis for current case:', currentCase);
       const { user } = useAuthStore.getState();
+      console.log('Submitting diagnosis for user:', user?.id);
       if (!user) {
         console.error('No logged-in user found from auth store.');
         return false;
       }
 
       // Save the case result
-      const { error: insertError } = await supabase
+      const {data:inserResult, error: insertError } = await supabase
         .from('patient_cases')
-        .insert([{
-          user_id: user.id,
-          case_data: currentCase,
-          diagnosis_submitted: diagnosis,
-          is_correct: isCorrect,
-          completed_at: new Date().toISOString(),
-        }]);
-
+        .insert({
+         user_id: user.id,  // must exist in profiles table
+    case_data: currentCase.id,  // must be valid JSON/object
+    diagnosis_submitted: diagnosis,  // fixed spelling (single 'm')
+    is_correct: isCorrect,
+    completed_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
       if (insertError) {
         console.error('Error inserting diagnosis:', insertError);
       }
+      console.log('Inserted row(s):', inserResult);
 
       // Update user stats
       await get().updateUserStats('simulatorCasesCompleted');
@@ -109,16 +115,17 @@ export const useDataStore = create<DataState>((set, get) => ({
 
   addFlashcard: async (card) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { user } = useAuthStore.getState();
+      console.log('Adding flashcard for user:', user?.id);
       if (!user) return;
-
+      console.log('Flashcard data:', card);
       const { data, error } = await supabase
         .from('flashcards')
         .insert({
           user_id: user.id,
           front: card.front,
           back: card.back,
-          tags: card.tags,
+          // tags: card.tags,
           difficulty: card.difficulty || 1,
           last_reviewed: new Date().toISOString(),
           next_review: addDays(new Date(), 1).toISOString(),
@@ -127,6 +134,7 @@ export const useDataStore = create<DataState>((set, get) => ({
         })
         .select()
         .single();
+      console.log('Flashcard insert result:', data, 'Error:', error);
 
       if (!error && data) {
         const newCard: Flashcard = {
@@ -207,7 +215,8 @@ export const useDataStore = create<DataState>((set, get) => ({
 
   loadFlashcards: async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { user } = useAuthStore.getState();
+      console.log('Loading flashcards for user:', user?.id);
       if (!user) return;
 
       const { data, error } = await supabase
@@ -239,7 +248,7 @@ export const useDataStore = create<DataState>((set, get) => ({
 
   addDeadline: async (deadline) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { user } = useAuthStore.getState();
       if (!user) return;
 
       const { data, error } = await supabase
@@ -252,6 +261,7 @@ export const useDataStore = create<DataState>((set, get) => ({
           category: deadline.category,
           priority: deadline.priority,
           is_completed: deadline.isCompleted,
+          created_at: new Date().toISOString(),
         })
         .select()
         .single();
@@ -320,7 +330,7 @@ export const useDataStore = create<DataState>((set, get) => ({
 
   loadDeadlines: async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { user } = useAuthStore.getState();
       if (!user) return;
 
       const { data, error } = await supabase
@@ -396,7 +406,7 @@ export const useDataStore = create<DataState>((set, get) => ({
 
   addMnemonic: async (mnemonic) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { user } = useAuthStore.getState();
       if (!user) return;
 
       const { data, error } = await supabase
@@ -437,7 +447,7 @@ export const useDataStore = create<DataState>((set, get) => ({
 
   generateAIMnemonic: async (term: string, style: 'funny' | 'professional' | 'creative' = 'funny') => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { user } = useAuthStore.getState();
       if (!user) throw new Error('User not authenticated');
 
       let result;
@@ -477,7 +487,7 @@ export const useDataStore = create<DataState>((set, get) => ({
 
   loadMnemonics: async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { user } = useAuthStore.getState();
       if (!user) return;
 
       const { data, error } = await supabase
@@ -545,7 +555,7 @@ export const useDataStore = create<DataState>((set, get) => ({
 
   startStudySession: async (type) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { user } = useAuthStore.getState();
       if (!user) return '';
 
       const { data, error } = await supabase
@@ -617,7 +627,7 @@ export const useDataStore = create<DataState>((set, get) => ({
 
   updateUserStats: async (statType: string, incrementValue: number = 1) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { user } = useAuthStore.getState();
       if (!user) return;
 
       await supabase.rpc('update_user_stats', {
@@ -642,7 +652,7 @@ export const useDataStore = create<DataState>((set, get) => ({
 
   getUserStats: async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { user } = useAuthStore.getState();
       if (!user) return null;
 
       const { data, error } = await supabase

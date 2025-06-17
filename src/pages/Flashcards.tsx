@@ -13,7 +13,8 @@ import {
   Search,
   Filter,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  CheckCircle
 } from 'lucide-react';
 import { useDataStore } from '../stores/dataStore';
 import toast from 'react-hot-toast';
@@ -78,9 +79,16 @@ const Flashcards: React.FC = () => {
     const tags = newCard.tags.split(',').map(tag => tag.trim()).filter(Boolean);
     
     addFlashcard({
+      id: Date.now().toString(),
       front: newCard.front,
       back: newCard.back,
       tags,
+      difficulty: 1,
+      lastReviewed: new Date(),
+      nextReview: new Date(),
+      correctCount: 0,
+      incorrectCount: 0,
+      createdAt: new Date()
     });
 
     setNewCard({ front: '', back: '', tags: '' });
@@ -206,44 +214,51 @@ const Flashcards: React.FC = () => {
 
                 {/* Flashcard */}
                 <div 
-                  className="relative h-80 cursor-pointer"
+                  className="relative h-80 cursor-pointer perspective-1000"
                   onClick={() => setShowAnswer(!showAnswer)}
                 >
                   <motion.div
-                    className="absolute inset-0 bg-white rounded-2xl shadow-lg border border-gray-200 p-8 flex items-center justify-center"
+                    className="absolute inset-0 bg-white rounded-2xl shadow-lg border border-gray-200 p-8"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     animate={{ rotateY: showAnswer ? 180 : 0 }}
                     transition={{ duration: 0.6 }}
-                    style={{ transformStyle: 'preserve-3d' }}
+                    style={{ 
+                      transformStyle: 'preserve-3d',
+                      backfaceVisibility: 'hidden'
+                    }}
                   >
-                    <div style={{ backfaceVisibility: 'hidden' }}>
-                      {!showAnswer && (
-                        <div className="text-center">
-                          <Brain className="w-12 h-12 text-primary-600 mx-auto mb-4" />
-                          <h3 className="text-xl font-semibold text-gray-900 mb-6">
-                            {currentCard?.front}
-                          </h3>
-                          <p className="text-gray-500">Click to reveal answer</p>
-                        </div>
-                      )}
-                    </div>
-                    
+                    {/* Front of card */}
                     <div 
                       className="absolute inset-0 p-8 flex items-center justify-center"
                       style={{ 
-                        transform: 'rotateY(180deg)', 
-                        backfaceVisibility: 'hidden' 
+                        backfaceVisibility: 'hidden',
+                        transform: 'rotateY(0deg)'
                       }}
                     >
-                      {showAnswer && (
-                        <div className="text-center">
-                          <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
-                          <div className="text-lg text-gray-900 leading-relaxed">
-                            {currentCard?.back}
-                          </div>
+                      <div className="text-center">
+                        <Brain className="w-12 h-12 text-primary-600 mx-auto mb-4" />
+                        <h3 className="text-xl font-semibold text-gray-900 mb-6">
+                          {currentCard?.front}
+                        </h3>
+                        <p className="text-gray-500">Click to reveal answer</p>
+                      </div>
+                    </div>
+                    
+                    {/* Back of card */}
+                    <div 
+                      className="absolute inset-0 p-8 flex items-center justify-center"
+                      style={{ 
+                        backfaceVisibility: 'hidden',
+                        transform: 'rotateY(180deg)'
+                      }}
+                    >
+                      <div className="text-center">
+                        <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
+                        <div className="text-lg text-gray-900 leading-relaxed">
+                          {currentCard?.back}
                         </div>
-                      )}
+                      </div>
                     </div>
                   </motion.div>
                 </div>

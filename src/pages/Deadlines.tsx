@@ -54,7 +54,8 @@ const Deadlines: React.FC = () => {
                           deadline.description.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = !filterCategory || deadline.category === filterCategory;
       const matchesPriority = !filterPriority || deadline.priority === filterPriority;
-      return matchesSearch && matchesCategory && matchesPriority;
+      const isIncomplete = !deadline.isCompleted;
+      return matchesSearch && matchesCategory && matchesPriority && isIncomplete;
     })
     .sort((a, b) => {
       if (sortBy === 'dueDate') {
@@ -67,9 +68,8 @@ const Deadlines: React.FC = () => {
       }
     });
 
-  const upcomingDeadlines = filteredAndSortedDeadlines.filter(d => !d.isCompleted && !isPast(d.dueDate));
-  const overdueDeadlines = filteredAndSortedDeadlines.filter(d => !d.isCompleted && isPast(d.dueDate));
-  const completedDeadlines = filteredAndSortedDeadlines.filter(d => d.isCompleted);
+  const upcomingDeadlines = filteredAndSortedDeadlines.filter(d => !isPast(d.dueDate));
+  const overdueDeadlines = filteredAndSortedDeadlines.filter(d => isPast(d.dueDate));
 
   const handleCreateDeadline = () => {
     if (!newDeadline.title.trim() || !newDeadline.dueDate) {
@@ -78,9 +78,14 @@ const Deadlines: React.FC = () => {
     }
 
     addDeadline({
-      ...newDeadline,
+      id: Date.now().toString(),
+      title: newDeadline.title,
+      description: newDeadline.description,
       dueDate: new Date(newDeadline.dueDate),
+      category: newDeadline.category,
+      priority: newDeadline.priority,
       isCompleted: false,
+      createdAt: new Date()
     });
 
     setNewDeadline({
@@ -94,14 +99,24 @@ const Deadlines: React.FC = () => {
     toast.success('Deadline created successfully!');
   };
 
-  const handleToggleComplete = (id: string, completed: boolean) => {
-    updateDeadline(id, { isCompleted: completed });
-    toast.success(completed ? 'Deadline completed!' : 'Deadline reopened!');
+  const handleToggleComplete = async (id: string, completed: boolean) => {
+    try {
+      await updateDeadline(id, { isCompleted: completed });
+      toast.success(completed ? 'Deadline completed!' : 'Deadline reopened!');
+    } catch (error) {
+      console.error('Error updating deadline:', error);
+      toast.error('Failed to update deadline');
+    }
   };
 
-  const handleDeleteDeadline = (id: string) => {
-    deleteDeadline(id);
-    toast.success('Deadline deleted!');
+  const handleDeleteDeadline = async (id: string) => {
+    try {
+      await deleteDeadline(id);
+      toast.success('Deadline deleted!');
+    } catch (error) {
+      console.error('Error deleting deadline:', error);
+      toast.error('Failed to delete deadline');
+    }
   };
 
   const getTimeUntilDeadline = (dueDate: Date) => {
@@ -160,7 +175,7 @@ const Deadlines: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
-        className="grid grid-cols-2 md:grid-cols-4 gap-6"
+        className="grid grid-cols-2 md:grid-cols-3 gap-6"
       >
         <div className="card text-center">
           <Clock className="w-8 h-8 text-blue-600 mx-auto mb-2" />
@@ -173,14 +188,9 @@ const Deadlines: React.FC = () => {
           <div className="text-sm text-gray-600">Overdue</div>
         </div>
         <div className="card text-center">
-          <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
-          <div className="text-2xl font-bold text-gray-900">{completedDeadlines.length}</div>
-          <div className="text-sm text-gray-600">Completed</div>
-        </div>
-        <div className="card text-center">
           <Calendar className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-          <div className="text-2xl font-bold text-gray-900">{deadlines.length}</div>
-          <div className="text-sm text-gray-600">Total</div>
+          <div className="text-2xl font-bold text-gray-900">{filteredAndSortedDeadlines.length}</div>
+          <div className="text-sm text-gray-600">Total Active</div>
         </div>
       </motion.div>
 
@@ -369,29 +379,6 @@ const Deadlines: React.FC = () => {
             </h2>
             <div className="space-y-3">
               {upcomingDeadlines.map((deadline) => (
-                <DeadlineCard
-                  key={deadline.id}
-                  deadline={deadline}
-                  onToggleComplete={handleToggleComplete}
-                  onDelete={handleDeleteDeadline}
-                  getTimeUntilDeadline={getTimeUntilDeadline}
-                  getPriorityColor={getPriorityColor}
-                  getDeadlineUrgency={getDeadlineUrgency}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Completed Deadlines */}
-        {completedDeadlines.length > 0 && (
-          <div>
-            <h2 className="text-xl font-semibold text-green-600 mb-4 flex items-center">
-              <CheckCircle className="w-5 h-5 mr-2" />
-              Completed ({completedDeadlines.length})
-            </h2>
-            <div className="space-y-3">
-              {completedDeadlines.map((deadline) => (
                 <DeadlineCard
                   key={deadline.id}
                   deadline={deadline}

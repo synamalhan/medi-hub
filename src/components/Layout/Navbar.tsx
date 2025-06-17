@@ -10,7 +10,8 @@ import {
   BookOpen, 
   BarChart3, 
   LogOut,
-  Stethoscope 
+  Stethoscope,
+  FileText
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 
@@ -24,6 +25,7 @@ const Navbar: React.FC = () => {
     { path: '/flashcards', icon: BookOpen, label: 'Flashcards' },
     { path: '/deadlines', icon: Calendar, label: 'Deadlines' },
     { path: '/mnemonics', icon: Lightbulb, label: 'Mnemonics' },
+    { path: '/research-summarizer', icon: FileText, label: 'Research Summarizer' },
     { path: '/analytics', icon: BarChart3, label: 'Analytics', isPro: true },
     { path: '/profile', icon: User, label: 'Profile' },
   ];

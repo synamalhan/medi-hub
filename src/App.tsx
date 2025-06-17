@@ -12,6 +12,7 @@ import Deadlines from './pages/Deadlines';
 import Mnemonics from './pages/Mnemonics';
 import Analytics from './pages/Analytics';
 import Profile from './pages/Profile';
+import ResearchSummarizer from './pages/ResearchSummarizer';
 
 function App() {
   const { isAuthenticated, initialize } = useAuthStore();
@@ -42,6 +43,7 @@ function App() {
           <Route path="mnemonics" element={<Mnemonics />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="research-summarizer" element={<ResearchSummarizer />} />
         </Route>
         
         {/* Redirect any unknown routes */}
