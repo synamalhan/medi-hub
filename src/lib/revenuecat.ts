@@ -1,37 +1,22 @@
-import { Purchases } from '@revenuecat/purchases-js';
-import { supabase } from './supabase';
-
+// Simple mock implementation for now
 let purchasesInstance: any = null;
 
 // Initialize RevenueCat with Paddle
-export const initializeRevenueCat = async (userId?: string) => {
+export const initializeRevenueCat = async () => {
   try {
-    if (!import.meta.env.VITE_REVENUECAT_PUBLIC_KEY) {
-      throw new Error('RevenueCat public key not configured');
+    if (!purchasesInstance) {
+      // Mock initialization
+      purchasesInstance = {
+        logIn: async (userId: string) => {
+          console.log('Mock RevenueCat: User logged in', userId);
+        },
+        logOut: async () => {
+          console.log('Mock RevenueCat: User logged out');
+        }
+      };
     }
-
-    purchasesInstance = await Purchases.configure(
-      import.meta.env.VITE_REVENUECAT_PUBLIC_KEY,
-      'paddle', // Using Paddle as the payment processor
-      import.meta.env.VITE_PADDLE_API_KEY
-    );
-
-    // Identify user if provided
-    if (userId) {
-      await purchasesInstance.logIn(userId);
-      
-      // Update user's RevenueCat ID in database
-      await supabase
-        .from('profiles')
-        .update({ revenue_cat_user_id: userId })
-        .eq('id', userId);
-    }
-
-    console.log('RevenueCat initialized successfully with Paddle');
-    return purchasesInstance;
   } catch (error) {
-    console.error('Failed to initialize RevenueCat:', error);
-    throw error;
+    console.error('Error initializing RevenueCat:', error);
   }
 };
 
@@ -154,34 +139,22 @@ export const identifyUser = async (userId: string) => {
     if (!purchasesInstance) {
       await initializeRevenueCat();
     }
-    
-    await purchasesInstance.logIn(userId);
-    const customerInfo = await purchasesInstance.getCustomerInfo();
-    
-    // Update user's RevenueCat ID in database
-    await supabase
-      .from('profiles')
-      .update({ revenue_cat_user_id: userId })
-      .eq('id', userId);
-    
-    return customerInfo;
+    if (purchasesInstance) {
+      await purchasesInstance.logIn(userId);
+    }
   } catch (error) {
-    console.error('Failed to identify user:', error);
-    throw error;
+    console.error('Error identifying user in RevenueCat:', error);
   }
 };
 
 // Reset user (call this when user logs out)
 export const resetUser = async () => {
   try {
-    if (!purchasesInstance) {
-      await initializeRevenueCat();
+    if (purchasesInstance) {
+      await purchasesInstance.logOut();
     }
-    
-    await purchasesInstance.logOut();
   } catch (error) {
     console.error('Failed to reset user:', error);
-    throw error;
   }
 };
 

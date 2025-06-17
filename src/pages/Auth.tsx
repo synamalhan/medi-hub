@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Brain, Mail, Lock, User, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -15,8 +15,20 @@ const Auth: React.FC = () => {
     name: '',
   });
 
-  const { login, register, isLoading } = useAuthStore();
+  const { login, register, isLoading, logout } = useAuthStore();
   const navigate = useNavigate();
+
+  // Log out any previous user when the Auth page is opened
+  useEffect(() => {
+    const handleLogout = async () => {
+      try {
+        await logout(false);
+      } catch (error) {
+        console.error('Error logging out:', error);
+      }
+    };
+    handleLogout();
+  }, [logout]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

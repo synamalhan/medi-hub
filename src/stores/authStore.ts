@@ -8,9 +8,11 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isPro: boolean;
+  error: string | null;
   login: (email: string, password: string) => Promise<boolean>;
   register: (email: string, password: string, name: string) => Promise<boolean>;
-  logout: () => void;
+  logout: (shouldRedirect?: boolean) => Promise<void>;
   updateUser: (updates: Partial<User>) => void;
   initialize: () => Promise<void>;
   refreshUserStats: () => Promise<void>;
@@ -24,13 +26,24 @@ const transformSupabaseUser = (profile: Database['public']['Tables']['profiles']
   isPro: profile.is_pro,
   createdAt: new Date(profile.created_at),
   lastLogin: new Date(),
-  stats: profile.stats,
+  stats: {
+    simulatorAccuracy: profile.stats?.simulatorAccuracy || 0,
+    flashcardsReviewed: profile.stats?.flashcardsReviewed || 0,
+    streakDays: profile.stats?.streakDays || 0,
+    totalStudyHours: profile.stats?.totalStudyHours || 0,
+    simulatorCasesCompleted: profile.stats?.simulatorCasesCompleted || 0,
+    mnemonicsCreated: profile.stats?.mnemonicsCreated || 0,
+    aiGenerationsUsed: profile.stats?.aiGenerationsUsed || 0,
+    researchSummariesCreated: profile.stats?.researchSummariesCreated || 0,
+  },
 });
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: false,
+  isPro: false,
+  error: null,
 
   initialize: async () => {
     try {
@@ -45,7 +58,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
         if (profile) {
           const user = transformSupabaseUser(profile);
-          set({ user, isAuthenticated: true });
+          set({ 
+            user, 
+            isAuthenticated: true,
+            isPro: user.isPro 
+          });
           
           // Initialize RevenueCat with user ID
           try {
@@ -61,7 +78,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   login: async (email: string, password: string) => {
-    set({ isLoading: true });
+    set({ isLoading: true, error: null });
     
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -80,7 +97,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
         if (profile) {
           const user = transformSupabaseUser(profile);
-          set({ user, isAuthenticated: true, isLoading: false });
+          set({ 
+            user, 
+            isAuthenticated: true,
+            isPro: user.isPro,
+            isLoading: false 
+          });
           
           // Initialize RevenueCat
           try {
@@ -101,7 +123,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   register: async (email: string, password: string, name: string) => {
-    set({ isLoading: true });
+    set({ isLoading: true, error: null });
     
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -133,10 +155,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             simulatorCasesCompleted: 0,
             mnemonicsCreated: 0,
             aiGenerationsUsed: 0,
+            researchSummariesCreated: 0,
           },
         };
         
-        set({ user, isAuthenticated: true, isLoading: false });
+        set({ 
+          user, 
+          isAuthenticated: true,
+          isPro: false,
+          isLoading: false 
+        });
         
         // Initialize RevenueCat
         try {
@@ -155,15 +183,32 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     return false;
   },
 
-  logout: async () => {
+  logout: async (shouldRedirect = true) => {
     try {
-      await resetUser(); // Reset RevenueCat user
+      // Reset RevenueCat user
+      await resetUser();
+      
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      // Clear auth state
+      set({ 
+        user: null, 
+        isAuthenticated: false, 
+        isPro: false,
+        isLoading: false,
+        error: null 
+      });
+
+      // Redirect to landing page only if shouldRedirect is true
+      if (shouldRedirect) {
+        window.location.href = '/';
+      }
     } catch (error) {
-      console.warn('RevenueCat reset failed:', error);
+      console.error('Logout error:', error);
+      set({ error: 'Failed to log out' });
     }
-    
-    await supabase.auth.signOut();
-    set({ user: null, isAuthenticated: false });
   },
 
   updateUser: async (updates: Partial<User>) => {
@@ -184,7 +229,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (!error) {
         const updatedUser = { ...user, ...updates };
-        set({ user: updatedUser });
+        set({ 
+          user: updatedUser,
+          isPro: updatedUser.isPro 
+        });
       }
     } catch (error) {
       console.error('Error updating user:', error);
@@ -198,17 +246,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('stats, is_pro, subscription_status, subscription_expires_at')
+        .select('*')
         .eq('id', user.id)
         .single();
 
       if (profile) {
-        const updatedUser = {
-          ...user,
-          stats: profile.stats,
-          isPro: profile.is_pro,
-        };
-        set({ user: updatedUser });
+        const updatedUser = transformSupabaseUser(profile);
+        set({ 
+          user: updatedUser,
+          isPro: updatedUser.isPro 
+        });
       }
     } catch (error) {
       console.error('Error refreshing user stats:', error);

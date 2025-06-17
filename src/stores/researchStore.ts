@@ -14,6 +14,8 @@ interface ResearchSummary {
   summary_min_length: number;
   summary_max_length: number;
   model_used: string;
+  deadline?: string;
+  mnemonics?: string[];
   created_at: string;
 }
 

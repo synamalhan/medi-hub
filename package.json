@@ -10,16 +10,27 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@radix-ui/react-progress": "^1.1.7",
+    "@radix-ui/react-select": "^2.2.5",
+    "@radix-ui/react-slot": "^1.2.3",
     "@revenuecat/purchases-js": "^1.5.2",
     "@supabase/supabase-js": "^2.50.0",
+    "@types/file-saver": "^2.0.7",
+    "@types/pdfjs-dist": "^2.10.378",
+    "@xenova/transformers": "^2.15.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
+    "file-saver": "^2.0.5",
     "framer-motion": "^11.0.24",
     "lucide-react": "^0.344.0",
+    "pdfjs-dist": "^2.16.105",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hot-toast": "^2.4.1",
     "react-router-dom": "^6.22.3",
     "recharts": "^2.12.2",
+    "tailwind-merge": "^3.3.1",
     "zustand": "^4.5.2"
   },
   "devDependencies": {

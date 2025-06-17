@@ -26,6 +26,10 @@ export type Database = {
             flashcardsReviewed: number;
             streakDays: number;
             totalStudyHours: number;
+            researchSummariesCreated: number;
+            simulatorCasesCompleted: number;
+            mnemonicsCreated: number;
+            aiGenerationsUsed: number;
           };
         };
         Insert: {
@@ -34,7 +38,16 @@ export type Database = {
           full_name: string;
           avatar_url?: string | null;
           is_pro?: boolean;
-          stats?: any;
+          stats?: {
+            simulatorAccuracy: number;
+            flashcardsReviewed: number;
+            streakDays: number;
+            totalStudyHours: number;
+            researchSummariesCreated: number;
+            simulatorCasesCompleted: number;
+            mnemonicsCreated: number;
+            aiGenerationsUsed: number;
+          };
         };
         Update: {
           email?: string;
@@ -42,7 +55,16 @@ export type Database = {
           avatar_url?: string | null;
           is_pro?: boolean;
           updated_at?: string;
-          stats?: any;
+          stats?: {
+            simulatorAccuracy: number;
+            flashcardsReviewed: number;
+            streakDays: number;
+            totalStudyHours: number;
+            researchSummariesCreated: number;
+            simulatorCasesCompleted: number;
+            mnemonicsCreated: number;
+            aiGenerationsUsed: number;
+          };
         };
       };
       patient_cases: {

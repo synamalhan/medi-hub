@@ -12,6 +12,9 @@ export interface User {
     streakDays: number;
     totalStudyHours: number;
     researchSummariesCreated: number;
+    simulatorCasesCompleted: number;
+    mnemonicsCreated: number;
+    aiGenerationsUsed: number;
   };
 }
 

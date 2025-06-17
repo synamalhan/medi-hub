@@ -21,6 +21,7 @@ import {
 import { useAuthStore } from '../stores/authStore';
 import toast from 'react-hot-toast';
 import { SubscriptionPaywall } from '../components/SubscriptionPaywall';
+import { saveAs } from 'file-saver';
 
 const Profile: React.FC = () => {
   const { user, updateUser } = useAuthStore();
@@ -58,8 +59,8 @@ const Profile: React.FC = () => {
       title: '100 Day Streak',
       description: 'Studied for 100 consecutive days',
       icon: Zap,
-      earned: user?.stats.streakDays >= 100,
-      progress: user?.stats.streakDays || 0,  
+      earned: (user?.stats?.streakDays ?? 0) >= 100,
+      progress: user?.stats?.streakDays ?? 0,  
       total: 100,
       color: 'orange',
     },
@@ -67,8 +68,8 @@ const Profile: React.FC = () => {
       title: 'Case Master',
       description: 'Completed 50 patient simulator cases',
       icon: Target,
-      earned: user?.stats.simulatorCasesCompleted >= 50,
-      progress: user?.stats.simulatorCasesCompleted || 0,
+      earned: (user?.stats?.simulatorCasesCompleted ?? 0) >= 50,
+      progress: user?.stats?.simulatorCasesCompleted ?? 0,
       total: 50,
       color: 'green',
     },
@@ -76,8 +77,8 @@ const Profile: React.FC = () => {
       title: 'Flashcard Expert',
       description: 'Reviewed 1000 flashcards',
       icon: Award,
-      earned: user.stats.flashcardsReviewed >= 1000,
-      progress: user?.stats.flashcardsReviewed || 0,
+      earned: (user?.stats?.flashcardsReviewed ?? 0) >= 1000,
+      progress: user?.stats?.flashcardsReviewed ?? 0,
       total: 1000,
       color: 'blue',
     },
@@ -85,8 +86,8 @@ const Profile: React.FC = () => {
       title: 'Speed Learner',
       description: 'Maintain 90%+ accuracy for 30 days',
       icon: Clock,
-      earned: user?.stats.simulatorAccuracy >= 90,
-      progress: user?.stats.simulatorAccuracy || 0,
+      earned: (user?.stats?.simulatorAccuracy ?? 0) >= 90,
+      progress: user?.stats?.simulatorAccuracy ?? 0,
       total: 30,
       color: 'purple',
     },
@@ -100,6 +101,44 @@ const Profile: React.FC = () => {
       purple: earned ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-gray-100 text-gray-500 border-gray-200',
     };
     return baseClasses[color as keyof typeof baseClasses];
+  };
+
+  // --- Button Handlers ---
+  const handleNotifications = () => {
+    toast('Notification settings coming soon!');
+  };
+
+  const handlePrivacy = () => {
+    toast('Privacy & Security settings coming soon!');
+  };
+
+  const handleExportData = () => {
+    const data = JSON.stringify(user, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    saveAs(blob, 'medihub-profile-data.json');
+    toast.success('Profile data exported!');
+  };
+
+  const handleDownloadReport = () => {
+    const stats: any = user?.stats || {};
+    const report = `Study Streak: ${stats?.streakDays || 0} days\nTotal Study Hours: ${stats?.totalStudyHours || 0} hrs\nFlashcards Reviewed: ${stats?.flashcardsReviewed || 0}\nSimulator Accuracy: ${stats?.simulatorAccuracy || 0}%`;
+    const blob = new Blob([report], { type: 'text/plain' });
+    saveAs(blob, 'study-report.txt');
+    toast.success('Study report downloaded!');
+  };
+
+  const handleResetProgress = () => {
+    if (window.confirm('Are you sure you want to reset your progress? This cannot be undone.')) {
+      // Placeholder: Reset stats logic here
+      toast.success('Progress reset! (Not yet implemented)');
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    if (window.confirm('Are you sure you want to delete your account? This action is irreversible.')) {
+      // Placeholder: Delete account logic here
+      toast.success('Account deleted! (Not yet implemented)');
+    }
   };
 
   if (!user) return null;
@@ -291,17 +330,17 @@ const Profile: React.FC = () => {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Account Settings</h2>
             
             <div className="space-y-3">
-              <button className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors">
+              <button className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors" onClick={handleNotifications}>
                 <Bell className="w-5 h-5 text-gray-400" />
                 <span className="text-gray-700">Notifications</span>
               </button>
               
-              <button className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors">
+              <button className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors" onClick={handlePrivacy}>
                 <Shield className="w-5 h-5 text-gray-400" />
                 <span className="text-gray-700">Privacy & Security</span>
               </button>
               
-              <button className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors">
+              <button className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors" onClick={handleExportData}>
                 <Download className="w-5 h-5 text-gray-400" />
                 <span className="text-gray-700">Export Data</span>
               </button>
@@ -326,15 +365,15 @@ const Profile: React.FC = () => {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
             
             <div className="space-y-3">
-              <button className="w-full btn-secondary text-left">
+              <button className="w-full btn-secondary text-left" onClick={handleDownloadReport}>
                 Download Study Report
               </button>
               
-              <button className="w-full btn-secondary text-left">
+              <button className="w-full btn-secondary text-left" onClick={handleResetProgress}>
                 Reset Progress
               </button>
               
-              <button className="w-full text-red-600 hover:bg-red-50 p-3 rounded-lg transition-colors text-left">
+              <button className="w-full text-red-600 hover:bg-red-50 p-3 rounded-lg transition-colors text-left" onClick={handleDeleteAccount}>
                 Delete Account
               </button>
             </div>
