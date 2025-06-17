@@ -30,6 +30,7 @@ const Profile: React.FC = () => {
     name: user?.name || '',
     email: user?.email || '',
   });
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   const handleSave = () => {
     if (!editForm.name.trim() || !editForm.email.trim()) {
@@ -109,7 +110,11 @@ const Profile: React.FC = () => {
   };
 
   const handlePrivacy = () => {
-    toast('Privacy & Security settings coming soon!');
+    setShowPrivacyModal(true);
+  };
+
+  const handleClosePrivacyModal = () => {
+    setShowPrivacyModal(false);
   };
 
   const handleExportData = () => {
@@ -380,6 +385,17 @@ const Profile: React.FC = () => {
           </div>
         </motion.div>
       </div>
+
+      {/* Privacy & Security Modal */}
+      {showPrivacyModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+            <h2 className="text-xl font-bold mb-4">Privacy & Security</h2>
+            <p className="mb-4">Your privacy and security settings will be available soon.</p>
+            <button className="btn-primary" onClick={handleClosePrivacyModal}>Close</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
