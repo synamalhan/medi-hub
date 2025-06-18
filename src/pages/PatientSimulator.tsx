@@ -587,7 +587,7 @@ const PatientSimulator: React.FC = () => {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="space-y-6"
         >
-          {/* Quick Stats */}
+          {/* Quick Stats
           <div className="card">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Today's Performance</h3>
             <div className="space-y-4">
@@ -604,7 +604,7 @@ const PatientSimulator: React.FC = () => {
                 <span className="font-semibold text-gray-900">8m 30s</span>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Tips */}
           <div className="card">
