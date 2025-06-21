@@ -15,20 +15,53 @@ const Auth: React.FC = () => {
     name: '',
   });
 
-  const { login, register, isLoading, logout } = useAuthStore();
+  const { login, register, isLoading, logout, clearAllStores } = useAuthStore();
   const navigate = useNavigate();
 
-  // Log out any previous user when the Auth page is opened
+  // Clear all caches and log out any previous user when the Auth page is opened
   useEffect(() => {
-    const handleLogout = async () => {
+    const handleAuthPageLoad = async () => {
+      console.log('Auth page loaded - clearing all caches...');
       try {
+        // Clear all store caches first
+        clearAllStores();
+        
+        // Clear browser storage
+        if (typeof window !== 'undefined') {
+          localStorage.clear();
+          console.log('✓ localStorage cleared');
+          sessionStorage.clear();
+          console.log('✓ sessionStorage cleared');
+          
+          // Clear any cached data
+          if ('caches' in window) {
+            try {
+              const cacheNames = await caches.keys();
+              await Promise.all(cacheNames.map(name => caches.delete(name)));
+              console.log(`✓ ${cacheNames.length} caches cleared`);
+            } catch (error) {
+              console.warn('Error clearing caches:', error);
+            }
+          }
+          
+          // Clear Supabase session storage specifically
+          const supabaseKeys = Object.keys(localStorage).filter(key => 
+            key.startsWith('sb-') || key.includes('supabase')
+          );
+          supabaseKeys.forEach(key => localStorage.removeItem(key));
+          console.log(`✓ ${supabaseKeys.length} Supabase keys cleared`);
+        }
+        
+        // Log out any previous user
         await logout(false);
+        console.log('✓ Previous user logged out');
       } catch (error) {
-        console.error('Error logging out:', error);
+        console.error('Error clearing cache and logging out:', error);
       }
     };
-    handleLogout();
-  }, [logout]);
+    
+    handleAuthPageLoad();
+  }, [logout, clearAllStores]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

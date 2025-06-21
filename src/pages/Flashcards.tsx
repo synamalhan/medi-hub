@@ -236,13 +236,13 @@ const Flashcards: React.FC = () => {
                         transform: 'rotateY(0deg)'
                       }}
                     >
-                      <div className="text-center">
-                        <Brain className="w-12 h-12 text-primary-600 mx-auto mb-4" />
-                        <h3 className="text-xl font-semibold text-gray-900 mb-6">
-                          {currentCard?.front}
-                        </h3>
-                        <p className="text-gray-500">Click to reveal answer</p>
-                      </div>
+                        <div className="text-center">
+                          <Brain className="w-12 h-12 text-primary-600 mx-auto mb-4" />
+                          <h3 className="text-xl font-semibold text-gray-900 mb-6">
+                            {currentCard?.front}
+                          </h3>
+                          <p className="text-gray-500">Click to reveal answer</p>
+                        </div>
                     </div>
                     
                     {/* Back of card */}
@@ -253,12 +253,12 @@ const Flashcards: React.FC = () => {
                         transform: 'rotateY(180deg)'
                       }}
                     >
-                      <div className="text-center">
-                        <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
-                        <div className="text-lg text-gray-900 leading-relaxed">
-                          {currentCard?.back}
+                        <div className="text-center">
+                          <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
+                          <div className="text-lg text-gray-900 leading-relaxed">
+                            {currentCard?.back}
+                          </div>
                         </div>
-                      </div>
                     </div>
                   </motion.div>
                 </div>

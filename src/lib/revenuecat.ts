@@ -140,7 +140,7 @@ export const identifyUser = async (userId: string) => {
       await initializeRevenueCat();
     }
     if (purchasesInstance) {
-      await purchasesInstance.logIn(userId);
+    await purchasesInstance.logIn(userId);
     }
   } catch (error) {
     console.error('Error identifying user in RevenueCat:', error);

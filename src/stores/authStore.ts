@@ -4,6 +4,13 @@ import { supabase } from '../lib/supabase';
 import { identifyUser, resetUser } from '../lib/revenuecat';
 import type { Database } from '../lib/supabase';
 
+// Import other stores for clearing
+import { useDataStore } from './dataStore';
+import { useResearchStore } from './researchStore';
+import { useAnalyticsStore } from './analyticsStore';
+import { useSubscriptionStore } from './subscriptionStore';
+import { useStudySessionStore } from './studySessionStore';
+
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
@@ -16,6 +23,8 @@ interface AuthState {
   updateUser: (updates: Partial<User>) => void;
   initialize: () => Promise<void>;
   refreshUserStats: () => Promise<void>;
+  clearAllStores: () => void;
+  debugSession: () => Promise<void>;
 }
 
 const transformSupabaseUser = (profile: Database['public']['Tables']['profiles']['Row']): User => ({
@@ -111,6 +120,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             console.warn('RevenueCat initialization failed:', error);
           }
           
+          // Start login session tracking
+          try {
+            await useStudySessionStore.getState().startLoginSession();
+          } catch (error) {
+            console.warn('Failed to start login session tracking:', error);
+          }
+          
           return true;
         }
       }
@@ -184,13 +200,57 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: async (shouldRedirect = true) => {
+    console.log('🔄 Starting logout process...');
     try {
-      // Reset RevenueCat user
-      await resetUser();
+      // End login session tracking first
+      try {
+        await useStudySessionStore.getState().endLoginSession();
+        console.log('✓ Study session ended');
+      } catch (error) {
+        console.warn('Failed to end login session tracking:', error);
+      }
       
-      // Sign out from Supabase
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      // Reset RevenueCat user
+      try {
+        await resetUser();
+        console.log('✓ RevenueCat user reset');
+      } catch (error) {
+        console.warn('RevenueCat reset failed:', error);
+      }
+      
+      // Clear Supabase session and cache properly
+      console.log('🔄 Signing out from Supabase...');
+      const { error: signOutError } = await supabase.auth.signOut();
+      if (signOutError) {
+        console.error('❌ Supabase signOut error:', signOutError);
+        throw signOutError;
+      }
+      console.log('✓ Supabase session cleared');
+      
+      // Wait a moment for the session to clear
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Verify logout was successful
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        console.warn('⚠️ Session still exists after logout, forcing clear...');
+        // Force clear the session again
+        await supabase.auth.signOut();
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Check again
+        const { data: { session: session2 } } = await supabase.auth.getSession();
+        if (session2) {
+          console.error('❌ Session still persists after second attempt');
+        } else {
+          console.log('✓ Session cleared on second attempt');
+        }
+      } else {
+        console.log('✓ Session verification successful - user is logged out');
+      }
+      
+      // Clear all store caches
+      get().clearAllStores();
       
       // Clear auth state
       set({ 
@@ -200,14 +260,63 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isLoading: false,
         error: null 
       });
+      console.log('✓ Auth state cleared');
 
-      // Redirect to landing page only if shouldRedirect is true
+      // Clear browser cache and storage
+      if (typeof window !== 'undefined') {
+        console.log('🔄 Clearing browser storage...');
+        
+        // Clear localStorage
+        localStorage.clear();
+        console.log('✓ localStorage cleared');
+        
+        // Clear sessionStorage
+        sessionStorage.clear();
+        console.log('✓ sessionStorage cleared');
+        
+        // Clear any cached data
+        if ('caches' in window) {
+          try {
+            const cacheNames = await caches.keys();
+            await Promise.all(cacheNames.map(name => caches.delete(name)));
+            console.log(`✓ ${cacheNames.length} caches cleared`);
+          } catch (error) {
+            console.warn('Failed to clear caches:', error);
+          }
+        }
+        
+        // Clear Supabase session storage specifically
+        const supabaseKeys = Object.keys(localStorage).filter(key => 
+          key.startsWith('sb-') || key.includes('supabase')
+        );
+        supabaseKeys.forEach(key => localStorage.removeItem(key));
+        console.log(`✓ ${supabaseKeys.length} Supabase keys cleared`);
+        
+        // Also clear any session storage keys
+        const sessionKeys = Object.keys(sessionStorage).filter(key => 
+          key.startsWith('sb-') || key.includes('supabase')
+        );
+        sessionKeys.forEach(key => sessionStorage.removeItem(key));
+        console.log(`✓ ${sessionKeys.length} Supabase session keys cleared`);
+      }
+
+      console.log('✅ Logout process completed successfully');
+
+      // Force a page reload to ensure complete logout
       if (shouldRedirect) {
-        window.location.href = '/';
+        console.log('🔄 Redirecting to auth page...');
+        // Use window.location.replace to prevent back button issues
+        window.location.replace('/auth');
       }
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('❌ Logout error:', error);
       set({ error: 'Failed to log out' });
+      
+      // Even if there's an error, try to redirect to auth page
+      if (shouldRedirect) {
+        console.log('🔄 Redirecting to auth page despite error...');
+        window.location.replace('/auth');
+      }
     }
   },
 
@@ -261,34 +370,118 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.error('Error refreshing user stats:', error);
     }
   },
+
+  clearAllStores: () => {
+    console.log('Clearing all stores...');
+    // Clear all Zustand stores by calling their clear methods
+    try {
+      useDataStore.getState().clear();
+      console.log('✓ DataStore cleared');
+      useResearchStore.getState().clear();
+      console.log('✓ ResearchStore cleared');
+      useAnalyticsStore.getState().clear();
+      console.log('✓ AnalyticsStore cleared');
+      useSubscriptionStore.getState().clear();
+      console.log('✓ SubscriptionStore cleared');
+      useStudySessionStore.getState().clear();
+      console.log('✓ StudySessionStore cleared');
+    } catch (error) {
+      console.warn('Error clearing stores:', error);
+    }
+  },
+
+  debugSession: async () => {
+    console.log('🔍 Debugging session status...');
+    
+    try {
+      // Check Supabase session
+      const { data: { session }, error } = await supabase.auth.getSession();
+      console.log('Supabase session:', session ? 'EXISTS' : 'NONE');
+      if (session) {
+        console.log('Session user ID:', session.user.id);
+        console.log('Session expires at:', session.expires_at);
+      }
+      if (error) {
+        console.error('Session error:', error);
+      }
+      
+      // Check current auth state
+      const currentState = get();
+      console.log('Current auth state:', {
+        isAuthenticated: currentState.isAuthenticated,
+        user: currentState.user ? 'EXISTS' : 'NONE',
+        isLoading: currentState.isLoading
+      });
+      
+      // Check localStorage for Supabase keys
+      if (typeof window !== 'undefined') {
+        const supabaseKeys = Object.keys(localStorage).filter(key => 
+          key.startsWith('sb-') || key.includes('supabase')
+        );
+        console.log('Supabase localStorage keys:', supabaseKeys);
+        
+        const sessionKeys = Object.keys(sessionStorage).filter(key => 
+          key.startsWith('sb-') || key.includes('supabase')
+        );
+        console.log('Supabase sessionStorage keys:', sessionKeys);
+      }
+    } catch (error) {
+      console.error('Debug session error:', error);
+    }
+  },
 }));
 
 // Listen for auth changes
 supabase.auth.onAuthStateChange(async (event, session) => {
+  console.log(`🔄 Auth state change: ${event}`, session ? 'Session exists' : 'No session');
+  
   if (event === 'SIGNED_IN' && session?.user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', session.user.id)
-      .single();
+    console.log('🔄 User signed in, fetching profile...');
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
 
-    if (profile) {
-      const user = transformSupabaseUser(profile);
-      useAuthStore.setState({ user, isAuthenticated: true });
-      
-      // Initialize RevenueCat
-      try {
-        await identifyUser(user.id);
-      } catch (error) {
-        console.warn('RevenueCat initialization failed:', error);
+      if (profile) {
+        const user = transformSupabaseUser(profile);
+        useAuthStore.setState({ user, isAuthenticated: true });
+        console.log('✓ User profile loaded and state updated');
+        
+        // Initialize RevenueCat
+        try {
+          await identifyUser(user.id);
+          console.log('✓ RevenueCat user identified');
+        } catch (error) {
+          console.warn('RevenueCat initialization failed:', error);
+        }
+      } else {
+        console.warn('No profile found for user');
       }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
     }
   } else if (event === 'SIGNED_OUT') {
+    console.log('🔄 User signed out, clearing state...');
     try {
       await resetUser();
+      console.log('✓ RevenueCat user reset');
     } catch (error) {
       console.warn('RevenueCat reset failed:', error);
     }
-    useAuthStore.setState({ user: null, isAuthenticated: false });
+    
+    // Only update state if we're not already in the process of logging out
+    const currentState = useAuthStore.getState();
+    if (currentState.isAuthenticated) {
+      useAuthStore.setState({ user: null, isAuthenticated: false });
+      console.log('✓ Auth state cleared via auth state change');
+    } else {
+      console.log('Auth state already cleared, skipping update');
+    }
+  } else if (event === 'TOKEN_REFRESHED') {
+    console.log('🔄 Token refreshed');
+  } else if (event === 'USER_UPDATED') {
+    console.log('🔄 User updated');
   }
 });

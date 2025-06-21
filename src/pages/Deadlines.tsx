@@ -102,7 +102,7 @@ const Deadlines: React.FC = () => {
   const handleToggleComplete = async (id: string, completed: boolean) => {
     try {
       await updateDeadline(id, { isCompleted: completed });
-      toast.success(completed ? 'Deadline completed!' : 'Deadline reopened!');
+    toast.success(completed ? 'Deadline completed!' : 'Deadline reopened!');
     } catch (error) {
       console.error('Error updating deadline:', error);
       toast.error('Failed to update deadline');
@@ -112,7 +112,7 @@ const Deadlines: React.FC = () => {
   const handleDeleteDeadline = async (id: string) => {
     try {
       await deleteDeadline(id);
-      toast.success('Deadline deleted!');
+    toast.success('Deadline deleted!');
     } catch (error) {
       console.error('Error deleting deadline:', error);
       toast.error('Failed to delete deadline');

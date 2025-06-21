@@ -26,6 +26,7 @@ interface ResearchState {
   createSummary: (data: Omit<ResearchSummary, 'id' | 'created_at'>) => Promise<void>;
   fetchSummaries: () => Promise<void>;
   deleteSummary: (id: string) => Promise<void>;
+  clear: () => void;
 }
 
 export const useResearchStore = create<ResearchState>((set, get) => ({
@@ -99,5 +100,13 @@ export const useResearchStore = create<ResearchState>((set, get) => ({
       console.error('Error deleting summary:', error);
       set({ error: 'Failed to delete summary', isLoading: false });
     }
+  },
+
+  clear: () => {
+    set({
+      summaries: [],
+      isLoading: false,
+      error: null,
+    });
   },
 })); 

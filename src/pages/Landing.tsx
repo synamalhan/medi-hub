@@ -59,8 +59,8 @@ const Landing: React.FC = () => {
     },
     {
       icon: Brain,
-      title: 'AI Study Assistant',
-      description: 'Get personalized study plans and intelligent content recommendations based on your learning patterns.',
+      title: 'Research Summarizer',
+      description: 'Summarize medical research papers with AI. Get the key insights and findings of a paper in a few seconds.',
       gradient: 'from-indigo-500 to-purple-500'
     }
   ];

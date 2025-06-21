@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
@@ -15,17 +15,26 @@ import {
   Play,
   ArrowRight,
   Zap,
-  Award
+  Award,
+  FileText
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useDataStore } from '../stores/dataStore';
-import { format, isToday, isTomorrow, differenceInDays } from 'date-fns';
+import { format, isToday, isTomorrow, differenceInDays, startOfDay, endOfDay } from 'date-fns';
 import { SubscriptionPaywall } from '../components/SubscriptionPaywall';
+import StudySessions from '../components/StudySessions';
+import { supabase } from '../lib/supabase';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuthStore();
   const { flashcards, deadlines, studySessions } = useDataStore();
   const [showPaywall, setShowPaywall] = useState(false);
+  const [todayProgress, setTodayProgress] = useState({
+    flashcardsReviewed: 0,
+    patientCasesCompleted: 0,
+    studyHours: 0,
+    isLoading: true
+  });
 
   const upcomingDeadlines = deadlines
     .filter(d => !d.isCompleted)
@@ -65,7 +74,7 @@ const Dashboard: React.FC = () => {
     },
     {
       label: 'Study Hours',
-      value: user?.stats.totalStudyHours || 0,
+      value: Number((user?.stats.totalStudyHours || 0).toFixed(2)),
       unit: 'hrs',
       icon: Clock,
       color: 'text-purple-600',
@@ -106,6 +115,14 @@ const Dashboard: React.FC = () => {
       gradient: 'from-yellow-500 to-orange-500',
       color: 'text-yellow-600',
     },
+    {
+      title: 'Research Summaries',
+      description: 'Summarize medical papers with AI',
+      icon: FileText,
+      path: '/research-summarizer',
+      gradient: 'from-indigo-500 to-indigo-600',
+      color: 'text-indigo-600',
+    },
   ];
 
   const getDeadlineColor = (dueDate: Date) => {
@@ -120,6 +137,139 @@ const Dashboard: React.FC = () => {
     if (isTomorrow(date)) return 'Tomorrow';
     return format(date, 'MMM dd');
   };
+
+  const fetchTodayProgress = async () => {
+    if (!user) return;
+
+    try {
+      setTodayProgress(prev => ({ ...prev, isLoading: true }));
+
+      const today = new Date();
+      const todayStart = startOfDay(today).toISOString();
+      const todayEnd = endOfDay(today).toISOString();
+
+      // Fetch today's flashcard reviews
+      const { data: flashcardData, error: flashcardError } = await supabase
+        .from('flashcards')
+        .select('last_reviewed')
+        .eq('user_id', user.id)
+        .gte('last_reviewed', todayStart)
+        .lte('last_reviewed', todayEnd);
+
+      if (flashcardError) {
+        console.error('Error fetching flashcard data:', flashcardError);
+      }
+
+      // Fetch today's patient cases
+      const { data: patientData, error: patientError } = await supabase
+        .from('patient_cases')
+        .select('completed_at')
+        .eq('user_id', user.id)
+        .not('completed_at', 'is', null)
+        .gte('completed_at', todayStart)
+        .lte('completed_at', todayEnd);
+
+      if (patientError) {
+        console.error('Error fetching patient case data:', patientError);
+      }
+
+      // Fetch today's study sessions
+      const { data: studySessionData, error: studySessionError } = await supabase
+        .from('study_sessions')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('created_at', todayStart)
+        .lte('created_at', todayEnd);
+
+      if (studySessionError) {
+        console.error('Error fetching study session data:', studySessionError);
+      }
+
+      // Calculate total study hours from today's sessions
+      const totalStudyHours = (studySessionData || []).reduce((total, session) => {
+        if (session.duration_hours) {
+          return total + session.duration_hours;
+        }
+        if (session.end_time) {
+          const startTime = new Date(session.start_time);
+          const endTime = new Date(session.end_time);
+          const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+          return total + durationHours;
+        }
+        return total;
+      }, 0);
+
+      setTodayProgress({
+        flashcardsReviewed: flashcardData?.length || 0,
+        patientCasesCompleted: patientData?.length || 0,
+        studyHours: totalStudyHours,
+        isLoading: false
+      });
+
+      console.log('Today\'s progress:', {
+        flashcardsReviewed: flashcardData?.length || 0,
+        patientCasesCompleted: patientData?.length || 0,
+        studyHours: totalStudyHours,
+        studySessions: studySessionData?.length || 0
+      });
+
+    } catch (error) {
+      console.error('Error fetching today\'s progress:', error);
+      setTodayProgress(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  // Debug function to check study sessions
+  const debugStudySessions = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('study_sessions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) {
+        console.error('Debug - Error fetching study sessions:', error);
+        return;
+      }
+
+      console.log('Debug - All study sessions for user:', data);
+      
+      const today = new Date();
+      const todayStart = startOfDay(today).toISOString();
+      const todayEnd = endOfDay(today).toISOString();
+      
+      const todaySessions = data.filter(session => {
+        const sessionDate = new Date(session.created_at);
+        return sessionDate >= new Date(todayStart) && sessionDate <= new Date(todayEnd);
+      });
+
+      console.log('Debug - Today\'s study sessions:', todaySessions);
+      console.log('Debug - Today start:', todayStart);
+      console.log('Debug - Today end:', todayEnd);
+    } catch (error) {
+      console.error('Debug - Error in debug function:', error);
+    }
+  };
+
+  // Fetch today's progress when component mounts or user changes
+  useEffect(() => {
+    fetchTodayProgress();
+    debugStudySessions();
+  }, [user]);
+
+  // Refresh progress when user returns to the tab
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchTodayProgress();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [user]);
 
   return (
     <div className="space-y-8">
@@ -262,40 +412,96 @@ const Dashboard: React.FC = () => {
           <div className="card">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-gray-900">Today's Progress</h2>
-              <BarChart3 className="w-5 h-5 text-gray-400" />
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={fetchTodayProgress}
+                  disabled={todayProgress.isLoading}
+                  className="p-1 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+                  title="Refresh today's progress"
+                >
+                  <BarChart3 className="w-5 h-5" />
+                </button>
+              </div>
             </div>
             
-            <div className="space-y-6">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Flashcards</span>
-                  <span className="text-sm text-gray-500">{user?.stats?.flashcardsReviewed || 0}/25</span>
+            {todayProgress.isLoading ? (
+              <div className="space-y-6">
+                <div className="animate-pulse">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="h-4 bg-gray-200 rounded w-20"></div>
+                    <div className="h-4 bg-gray-200 rounded w-12"></div>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2"></div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${(user?.stats?.flashcardsReviewed || 0) / 25 * 100}%` }}></div>
+                <div className="animate-pulse">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="h-4 bg-gray-200 rounded w-24"></div>
+                    <div className="h-4 bg-gray-200 rounded w-12"></div>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2"></div>
+                </div>
+                <div className="animate-pulse">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="h-4 bg-gray-200 rounded w-28"></div>
+                    <div className="h-4 bg-gray-200 rounded w-16"></div>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2"></div>
                 </div>
               </div>
-              
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Patient Cases</span>
-                  <span className="text-sm text-gray-500">{user?.stats?.simulatorAccuracy || 0}/5</span>
+            ) : (
+              <div className="space-y-6">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Flashcards Reviewed</span>
+                    <span className="text-sm text-gray-500">{todayProgress.flashcardsReviewed}/25</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                      style={{ width: `${Math.min((todayProgress.flashcardsReviewed / 25) * 100, 100)}%` }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-purple-600 h-2 rounded-full" style={{ width: `${(user?.stats?.simulatorAccuracy || 0) / 5 * 100}%` }}></div>
+                
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Patient Cases Completed</span>
+                    <span className="text-sm text-gray-500">{todayProgress.patientCasesCompleted}/5</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-purple-600 h-2 rounded-full transition-all duration-300" 
+                      style={{ width: `${Math.min((todayProgress.patientCasesCompleted / 5) * 100, 100)}%` }}
+                    ></div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            <div className="mt-6 pt-6 border-t border-gray-100">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">Overall Progress</span>
-                <span className="text-sm font-bold text-primary-600">{user?.stats?.totalStudyHours || 0}</span>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Study Hours Today</span>
+                    <span className="text-sm text-gray-500">{todayProgress.studyHours.toFixed(1)}/8 hrs</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-green-600 h-2 rounded-full transition-all duration-300" 
+                      style={{ width: `${Math.min((todayProgress.studyHours / 8) * 100, 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </motion.div>
       </div>
+
+      {/* Study Sessions */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+      >
+        <StudySessions />
+      </motion.div>
 
       {/* Pro Features Teaser */}
       {!user?.isPro && (

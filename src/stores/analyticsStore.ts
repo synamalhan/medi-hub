@@ -40,6 +40,7 @@ interface AnalyticsState {
   isLoading: boolean;
   error: string | null;
   fetchAnalytics: (timeRange: 'week' | 'month' | 'year') => Promise<void>;
+  clear: () => void;
 }
 
 export const useAnalyticsStore = create<AnalyticsState>((set) => ({
@@ -151,5 +152,16 @@ export const useAnalyticsStore = create<AnalyticsState>((set) => ({
       console.error('Error in fetchAnalytics:', error);
       set({ error: error.message, isLoading: false });
     }
+  },
+
+  clear: () => {
+    set({
+      studySessions: [],
+      categoryPerformance: [],
+      timeDistribution: [],
+      weeklyGoals: [],
+      isLoading: false,
+      error: null
+    });
   }
 })); 

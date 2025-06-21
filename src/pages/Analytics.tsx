@@ -138,7 +138,7 @@ const Analytics: React.FC = () => {
           <Activity className="w-8 h-8 text-blue-600 mx-auto mb-2" />
           <div className="text-2xl font-bold text-gray-900">{totalSessions}</div>
           <div className="text-sm text-gray-600">Total Sessions</div>
-        </div>
+          </div>
         <div className="card text-center">
           <Clock className="w-8 h-8 text-orange-600 mx-auto mb-2" />
           <div className="text-2xl font-bold text-gray-900">{Math.round(totalMinutes)}</div>
@@ -157,10 +157,10 @@ const Analytics: React.FC = () => {
       </motion.div>
 
       {/* Main Content: Charts and Analytics */}
-      <motion.div
+        <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
       >
         <div className="grid gap-6 md:grid-cols-2">
           {/* Study Progress Over Time */}
@@ -174,20 +174,20 @@ const Analytics: React.FC = () => {
             <CardContent>
               <div className="h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={studyProgressData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
+            <LineChart data={studyProgressData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
                     <YAxis label={{ value: 'Duration (minutes)', angle: -90, position: 'insideLeft' }} />
-                    <Tooltip />
-                    <Legend />
+              <Tooltip />
+              <Legend />
                     <Line type="monotone" dataKey="duration" stroke="#8884d8" name="Study Duration" />
-                  </LineChart>
-                </ResponsiveContainer>
+            </LineChart>
+          </ResponsiveContainer>
               </div>
             </CardContent>
           </Card>
 
-          {/* Performance by Category */}
+        {/* Performance by Category */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -199,21 +199,21 @@ const Analytics: React.FC = () => {
               <div className="h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={categoryData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="category" />
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="category" />
                     <YAxis yAxisId="left" orientation="left" stroke="#8884d8" label={{ value: 'Accuracy (%)', angle: -90, position: 'insideLeft' }} />
                     <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" label={{ value: 'Attempts', angle: 90, position: 'insideRight' }} />
-                    <Tooltip />
+              <Tooltip />
                     <Legend />
                     <Bar yAxisId="left" dataKey="accuracy" fill="#8884d8" name="Accuracy" />
                     <Bar yAxisId="right" dataKey="attempts" fill="#82ca9d" name="Attempts" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+            </BarChart>
+          </ResponsiveContainer>
+      </div>
             </CardContent>
           </Card>
 
-          {/* Time Distribution */}
+        {/* Time Distribution */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -224,29 +224,29 @@ const Analytics: React.FC = () => {
             <CardContent>
               <div className="h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
+            <PieChart>
+              <Pie
                       data={timeDistribution}
                       dataKey="percentage"
                       nameKey="category"
-                      cx="50%"
-                      cy="50%"
+                cx="50%"
+                cy="50%"
                       outerRadius={150}
                       label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    >
+              >
                       {timeDistribution.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
+                ))}
+              </Pie>
+              <Tooltip />
                     <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
+            </PieChart>
+          </ResponsiveContainer>
               </div>
             </CardContent>
           </Card>
 
-          {/* Weekly Goals */}
+        {/* Weekly Goals */}
           <Card className="col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -272,7 +272,7 @@ const Analytics: React.FC = () => {
                     </div>
                   </div>
                 ))}
-              </div>
+      </div>
             </CardContent>
           </Card>
 
@@ -294,16 +294,16 @@ const Analytics: React.FC = () => {
                       <div className="flex items-center gap-2 mb-2">
                         <span className="w-2 h-2 bg-primary-500 rounded-full"></span>
                         <span className="font-medium">{category.category}</span>
-                      </div>
+          </div>
                       <p className="text-sm text-gray-600">
                         Current accuracy: {category.accuracy}%
                       </p>
                       <p className="text-sm text-gray-600">
                         Total attempts: {category.total_attempts}
-                      </p>
-                    </div>
+            </p>
+          </div>
                   ))}
-              </div>
+          </div>
             </CardContent>
           </Card>
         </div>

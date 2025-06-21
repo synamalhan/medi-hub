@@ -10,6 +10,7 @@ interface SubscriptionState {
   fetchOfferings: () => Promise<void>;
   purchase: (packageToPurchase: any) => Promise<void>;
   restore: () => Promise<void>;
+  clear: () => void;
 }
 
 export const useSubscriptionStore = create<SubscriptionState>((set) => ({
@@ -56,5 +57,9 @@ export const useSubscriptionStore = create<SubscriptionState>((set) => ({
     } catch (error) {
       set({ error: (error as Error).message, isLoading: false });
     }
+  },
+
+  clear: () => {
+    set({ customerInfo: null, offerings: null, isLoading: false, error: null });
   },
 })); 

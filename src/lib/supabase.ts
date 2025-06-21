@@ -195,6 +195,8 @@ export type Database = {
           correct_answers: number;
           incorrect_answers: number;
           total_questions: number;
+          duration_hours: number | null;
+          activity_type: string | null;
           created_at: string;
         };
         Insert: {
@@ -205,12 +207,16 @@ export type Database = {
           correct_answers?: number;
           incorrect_answers?: number;
           total_questions?: number;
+          duration_hours?: number | null;
+          activity_type?: string | null;
         };
         Update: {
           end_time?: string | null;
           correct_answers?: number;
           incorrect_answers?: number;
           total_questions?: number;
+          duration_hours?: number | null;
+          activity_type?: string | null;
         };
       };
     };

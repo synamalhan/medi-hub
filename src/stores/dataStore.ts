@@ -5,6 +5,7 @@ import { generatePatientCase } from '../lib/patientGenerator';
 import { generateMnemonic, generateMnemonicFallback } from '../lib/openai';
 import { addDays } from 'date-fns';
 import { useAuthStore } from '../stores/authStore';
+import { useStudySessionStore } from './studySessionStore';
 
 interface DataState {
   patientCases: PatientCase[];
@@ -39,6 +40,7 @@ interface DataState {
   // Study Sessions
   startStudySession: (type: StudySession['type']) => Promise<string>;
   endStudySession: (id: string, correct: number, incorrect: number) => Promise<void>;
+  startActivitySession: (activityType: string) => Promise<void>;
   
   // Stats Management
   updateUserStats: (statType: string, incrementValue?: number) => Promise<void>;
@@ -46,6 +48,9 @@ interface DataState {
   
   // Data loading
   loadAllData: () => Promise<void>;
+  
+  // Cache clearing
+  clear: () => void;
 }
 
 export const useDataStore = create<DataState>((set, get) => ({
@@ -59,6 +64,13 @@ export const useDataStore = create<DataState>((set, get) => ({
   generateNewCase: () => {
     const newCase = generatePatientCase();
     set({ currentCase: newCase });
+    
+    // Start study session for patient simulator
+    try {
+      useStudySessionStore.getState().startStudySession('patient_simulator');
+    } catch (error) {
+      console.warn('Failed to start study session for patient simulator:', error);
+    }
   },
 
   submitDiagnosis: async (diagnosis: string) => {
@@ -75,6 +87,13 @@ export const useDataStore = create<DataState>((set, get) => ({
     console.log('Diagnosis submitted:', diagnosis, 'Correct:', isCorrect);
 
     try {
+      // End study session for patient simulator
+      try {
+        await useStudySessionStore.getState().endStudySession('patient_simulator');
+      } catch (error) {
+        console.warn('Failed to end study session for patient simulator:', error);
+      }
+
       console.log('Submitting diagnosis for current case:', currentCase);
       const { user } = useAuthStore.getState();
       console.log('Submitting diagnosis for user:', user?.id);
@@ -183,6 +202,13 @@ export const useDataStore = create<DataState>((set, get) => ({
         // Update stats when flashcard is reviewed
         if (updates.lastReviewed) {
           await get().updateUserStats('flashcardsReviewed');
+          
+          // End study session for flashcard review
+          try {
+            await useStudySessionStore.getState().endStudySession('flashcard_review');
+          } catch (error) {
+            console.warn('Failed to end study session for flashcard review:', error);
+          }
         }
       }
     } catch (error) {
@@ -625,6 +651,15 @@ export const useDataStore = create<DataState>((set, get) => ({
     }
   },
 
+  startActivitySession: async (activityType: string) => {
+    try {
+      await useStudySessionStore.getState().startStudySession(activityType);
+      console.log(`✓ Started study session for: ${activityType}`);
+    } catch (error) {
+      console.warn(`Failed to start study session for ${activityType}:`, error);
+    }
+  },
+
   updateUserStats: async (statType: string, incrementValue: number = 1) => {
     try {
       const { user } = useAuthStore.getState();
@@ -677,5 +712,16 @@ export const useDataStore = create<DataState>((set, get) => ({
       loadDeadlines(),
       loadMnemonics(),
     ]);
+  },
+
+  clear: () => {
+    set({
+      patientCases: [],
+      flashcards: [],
+      deadlines: [],
+      mnemonics: [],
+      studySessions: [],
+      currentCase: null,
+    });
   },
 }));
