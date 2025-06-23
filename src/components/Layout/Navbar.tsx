@@ -133,14 +133,14 @@ const Navbar: React.FC = () => {
               <span className="font-medium">Sign Out</span>
             </button>
             
-            {/* Temporary debug button */}
+            {/* Temporary debug button
             <button
               onClick={handleDebugSession}
               className="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 w-full mt-2 transition-all duration-200"
             >
               <BarChart3 className="w-5 h-5" />
               <span className="font-medium">Debug Session</span>
-            </button>
+            </button> */}
           </div>
         )}
       </div>

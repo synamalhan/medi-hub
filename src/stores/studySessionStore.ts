@@ -115,7 +115,8 @@ export const useStudySessionStore = create<StudySessionState>((set, get) => ({
       const { error } = await supabase
         .from('study_sessions')
         .update({
-          end_time: endTime.toISOString()
+          end_time: endTime.toISOString(),
+          duration_hours: durationHours
         })
         .eq('id', currentSession.id);
 
@@ -209,7 +210,8 @@ export const useStudySessionStore = create<StudySessionState>((set, get) => ({
       const { error } = await supabase
         .from('study_sessions')
         .update({
-          end_time: endTime.toISOString()
+          end_time: endTime.toISOString(),
+          duration_hours: durationHours
         })
         .eq('id', currentSession.id);
 

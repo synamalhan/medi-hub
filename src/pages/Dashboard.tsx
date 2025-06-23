@@ -16,7 +16,9 @@ import {
   ArrowRight,
   Zap,
   Award,
-  FileText
+  FileText,
+  X,
+  Activity
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useDataStore } from '../stores/dataStore';
@@ -24,6 +26,7 @@ import { format, isToday, isTomorrow, differenceInDays, startOfDay, endOfDay } f
 import { SubscriptionPaywall } from '../components/SubscriptionPaywall';
 import StudySessions from '../components/StudySessions';
 import { supabase } from '../lib/supabase';
+import { useStudySessionStore } from '../stores/studySessionStore';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuthStore();
@@ -219,6 +222,143 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Debug function to end all active sessions
+  const endAllActiveSessions = async () => {
+    if (!user) return;
+
+    try {
+      console.log('🔧 Ending all active sessions...');
+      
+      const { data: activeSessions, error } = await supabase
+        .from('study_sessions')
+        .select('*')
+        .eq('user_id', user.id)
+        .is('end_time', null);
+
+      if (error) {
+        console.error('Error fetching active sessions:', error);
+        return;
+      }
+
+      console.log('🔧 Found active sessions to end:', activeSessions);
+
+      for (const session of activeSessions) {
+        const endTime = new Date();
+        const startTime = new Date(session.start_time);
+        const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+
+        console.log(`🔧 Ending session ${session.id}: ${durationHours.toFixed(4)} hours`);
+
+        const { error: updateError } = await supabase
+          .from('study_sessions')
+          .update({ 
+            end_time: endTime.toISOString(),
+            duration_hours: durationHours
+          })
+          .eq('id', session.id);
+
+        if (updateError) {
+          console.error(`Error ending session ${session.id}:`, updateError);
+        } else {
+          console.log(`✅ Ended session ${session.id}`);
+        }
+      }
+
+      // Refresh the data
+      fetchTodayProgress();
+      useStudySessionStore.getState().fetchSessions('week');
+      
+    } catch (error) {
+      console.error('Error ending active sessions:', error);
+    }
+  };
+
+  // Debug function to check for active sessions
+  const checkActiveSessions = async () => {
+    if (!user) return;
+
+    try {
+      console.log('🔍 Checking for active sessions...');
+      
+      const { data: activeSessions, error } = await supabase
+        .from('study_sessions')
+        .select('*')
+        .eq('user_id', user.id)
+        .is('end_time', null);
+
+      if (error) {
+        console.error('Error fetching active sessions:', error);
+        return;
+      }
+
+      console.log('🔍 Active sessions (not ended):', activeSessions);
+
+      if (activeSessions.length > 0) {
+        console.log('⚠️ Found active sessions that haven\'t ended:');
+        activeSessions.forEach(session => {
+          const startTime = new Date(session.start_time);
+          const now = new Date();
+          const durationHours = (now.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+          console.log(`  - Session ${session.id}: ${session.session_type}, started ${startTime.toLocaleString()}, duration: ${durationHours.toFixed(4)} hours`);
+        });
+      } else {
+        console.log('✅ No active sessions found');
+      }
+      
+    } catch (error) {
+      console.error('Error checking active sessions:', error);
+    }
+  };
+
+  // Debug function to fix sessions with missing duration data
+  const fixSessionDurations = async () => {
+    if (!user) return;
+
+    try {
+      console.log('🔧 Fixing session durations...');
+      
+      const { data: sessions, error } = await supabase
+        .from('study_sessions')
+        .select('*')
+        .eq('user_id', user.id)
+        .is('duration_hours', null)
+        .not('end_time', 'is', null);
+
+      if (error) {
+        console.error('Error fetching sessions to fix:', error);
+        return;
+      }
+
+      console.log('🔧 Found sessions to fix:', sessions);
+
+      for (const session of sessions) {
+        const startTime = new Date(session.start_time);
+        const endTime = new Date(session.end_time);
+        const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+
+        console.log(`🔧 Fixing session ${session.id}: ${durationHours.toFixed(4)} hours`);
+
+        const { error: updateError } = await supabase
+          .from('study_sessions')
+          .update({ duration_hours: durationHours })
+          .eq('id', session.id);
+
+        if (updateError) {
+          console.error(`Error updating session ${session.id}:`, updateError);
+        } else {
+          console.log(`✅ Fixed session ${session.id}`);
+        }
+      }
+
+      // Refresh the data
+      fetchTodayProgress();
+      useStudySessionStore.getState().fetchSessions('week');
+      
+    } catch (error) {
+      console.error('Error fixing session durations:', error);
+    }
+  };
+
   // Debug function to check study sessions
   const debugStudySessions = async () => {
     if (!user) return;
@@ -250,26 +390,64 @@ const Dashboard: React.FC = () => {
       console.log('Debug - Today\'s study sessions:', todaySessions);
       console.log('Debug - Today start:', todayStart);
       console.log('Debug - Today end:', todayEnd);
+
+      // Check for current login session
+      const currentLoginSession = data.find(session => 
+        session.session_type === 'login_session' && !session.end_time
+      );
+      console.log('Debug - Current login session:', currentLoginSession);
+
+      // Check study session store state
+      const studySessionStore = useStudySessionStore.getState();
+      console.log('Debug - Study session store state:', {
+        currentSession: studySessionStore.currentSession,
+        sessionsCount: studySessionStore.sessions.length,
+        isLoading: studySessionStore.isLoading,
+        error: studySessionStore.error
+      });
+
     } catch (error) {
       console.error('Debug - Error in debug function:', error);
     }
   };
 
+  // Initialize study session store and fetch sessions
+  useEffect(() => {
+    if (user) {
+      console.log('🔄 Initializing study session store...');
+      useStudySessionStore.getState().fetchSessions('week');
+    }
+  }, [user?.id]);
+
   // Fetch today's progress when component mounts or user changes
   useEffect(() => {
-    fetchTodayProgress();
-    debugStudySessions();
-  }, [user]);
-
-  // Refresh progress when user returns to the tab
-  useEffect(() => {
-    const handleFocus = () => {
+    if (user) {
       fetchTodayProgress();
+      debugStudySessions();
+    }
+  }, [user?.id]);
+
+  // Refresh progress when user returns to the tab (with debounce)
+  useEffect(() => {
+    if (!user) return;
+
+    let lastRefreshTime = 0;
+    const REFRESH_COOLDOWN = 30000; // 30 seconds cooldown
+
+    const handleFocus = () => {
+      const now = Date.now();
+      if (now - lastRefreshTime > REFRESH_COOLDOWN) {
+        console.log('🔄 Tab focused, refreshing progress...');
+        fetchTodayProgress();
+        lastRefreshTime = now;
+      } else {
+        console.log('⏳ Skipping refresh - too soon since last refresh');
+      }
     };
 
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, [user]);
+  }, [user?.id]);
 
   return (
     <div className="space-y-8">
@@ -421,6 +599,47 @@ const Dashboard: React.FC = () => {
                 >
                   <BarChart3 className="w-5 h-5" />
                 </button>
+                <button
+                  onClick={() => {
+                    console.log('🔄 Manually starting login session...');
+                    useStudySessionStore.getState().startLoginSession();
+                  }}
+                  className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Start login session (debug)"
+                >
+                  <Clock className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => {
+                    console.log('🔄 Manually ending login session...');
+                    useStudySessionStore.getState().endLoginSession();
+                  }}
+                  className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                  title="End login session (debug)"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={fixSessionDurations}
+                  className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Fix session durations (debug)"
+                >
+                  <Target className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={checkActiveSessions}
+                  className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Check active sessions (debug)"
+                >
+                  <Activity className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={endAllActiveSessions}
+                  className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                  title="End all active sessions (debug)"
+                >
+                  <Zap className="w-5 h-5" />
+                </button>
               </div>
             </div>
             
@@ -450,6 +669,36 @@ const Dashboard: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-6">
+                {/* Current Session Status */}
+                {(() => {
+                  const currentSession = useStudySessionStore.getState().currentSession;
+                  if (currentSession) {
+                    const startTime = new Date(currentSession.start_time);
+                    const duration = (Date.now() - startTime.getTime()) / (1000 * 60 * 60);
+                    return (
+                      <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-blue-900">
+                              Active Session: {currentSession.session_type}
+                            </p>
+                            <p className="text-xs text-blue-700">
+                              Started: {startTime.toLocaleTimeString()}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-medium text-blue-900">
+                              {duration.toFixed(2)}h
+                            </p>
+                            <p className="text-xs text-blue-700">Duration</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-gray-700">Flashcards Reviewed</span>
