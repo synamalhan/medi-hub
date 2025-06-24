@@ -408,10 +408,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Check current auth state
       const currentState = get();
       //console.log('Current auth state:', {
-        isAuthenticated: currentState.isAuthenticated,
-        user: currentState.user ? 'EXISTS' : 'NONE',
-        isLoading: currentState.isLoading
-      });
+      //   isAuthenticated: currentState.isAuthenticated,
+      //   user: currentState.user ? 'EXISTS' : 'NONE',
+      //   isLoading: currentState.isLoading
+      // });
       
       // Check localStorage for Supabase keys
       if (typeof window !== 'undefined') {

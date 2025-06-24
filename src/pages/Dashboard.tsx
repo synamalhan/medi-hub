@@ -210,11 +210,11 @@ const Dashboard: React.FC = () => {
       });
 
       //console.log('Today\'s progress:', {
-        flashcardsReviewed: flashcardData?.length || 0,
-        patientCasesCompleted: patientData?.length || 0,
-        studyHours: totalStudyHours,
-        studySessions: studySessionData?.length || 0
-      });
+      //   flashcardsReviewed: flashcardData?.length || 0,
+      //   patientCasesCompleted: patientData?.length || 0,
+      //   studyHours: totalStudyHours,
+      //   studySessions: studySessionData?.length || 0
+      // });
 
     } catch (error) {
       console.error('Error fetching today\'s progress:', error);
@@ -400,11 +400,11 @@ const Dashboard: React.FC = () => {
       // Check study session store state
       const studySessionStore = useStudySessionStore.getState();
       //console.log('Debug - Study session store state:', {
-        currentSession: studySessionStore.currentSession,
-        sessionsCount: studySessionStore.sessions.length,
-        isLoading: studySessionStore.isLoading,
-        error: studySessionStore.error
-      });
+      //   currentSession: studySessionStore.currentSession,
+      //   sessionsCount: studySessionStore.sessions.length,
+      //   isLoading: studySessionStore.isLoading,
+      //   error: studySessionStore.error
+      // });
 
     } catch (error) {
       console.error('Debug - Error in debug function:', error);

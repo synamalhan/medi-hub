@@ -197,10 +197,10 @@ const StudySessions: React.FC = () => {
                     <p className="font-semibold text-gray-900">
                       {(() => {
                         //console.log('🔍 Session duration calculation for:', session.id, {
-                          duration_hours: session.duration_hours,
-                          end_time: session.end_time,
-                          start_time: session.start_time
-                        });
+                        //   duration_hours: session.duration_hours,
+                        //   end_time: session.end_time,
+                        //   start_time: session.start_time
+                        // });
                         
                         if (session.duration_hours) {
                           //console.log('🔍 Using duration_hours:', session.duration_hours);

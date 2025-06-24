@@ -146,9 +146,9 @@ export async function extractTextFromPDF(file: File): Promise<string> {
     }
     
     //console.log('PDF text extraction completed successfully', {
-      totalTextLength: fullText.length,
-      preview: fullText.substring(0, 200) + '...'
-    });
+    //   totalTextLength: fullText.length,
+    //   preview: fullText.substring(0, 200) + '...'
+    // });
     return fullText;
   } catch (error) {
     console.error('Error extracting text from PDF:', error);
