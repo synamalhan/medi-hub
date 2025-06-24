@@ -84,7 +84,7 @@ export const useDataStore = create<DataState>((set, get) => ({
       diagnosis.toLowerCase().includes(currentCase.diagnosis.condition.toLowerCase()) ||
       currentCase.diagnosis.condition.toLowerCase().includes(diagnosis.toLowerCase());
     
-    console.log('Diagnosis submitted:', diagnosis, 'Correct:', isCorrect);
+    //console.log('Diagnosis submitted:', diagnosis, 'Correct:', isCorrect);
 
     try {
       // End study session for patient simulator
@@ -94,9 +94,9 @@ export const useDataStore = create<DataState>((set, get) => ({
         console.warn('Failed to end study session for patient simulator:', error);
       }
 
-      console.log('Submitting diagnosis for current case:', currentCase);
+      //console.log('Submitting diagnosis for current case:', currentCase);
       const { user } = useAuthStore.getState();
-      console.log('Submitting diagnosis for user:', user?.id);
+      //console.log('Submitting diagnosis for user:', user?.id);
       if (!user) {
         console.error('No logged-in user found from auth store.');
         return false;
@@ -117,7 +117,7 @@ export const useDataStore = create<DataState>((set, get) => ({
       if (insertError) {
         console.error('Error inserting diagnosis:', insertError);
       }
-      console.log('Inserted row(s):', inserResult);
+      //console.log('Inserted row(s):', inserResult);
 
       // Update user stats
       await get().updateUserStats('simulatorCasesCompleted');
@@ -135,9 +135,9 @@ export const useDataStore = create<DataState>((set, get) => ({
   addFlashcard: async (card) => {
     try {
       const { user } = useAuthStore.getState();
-      console.log('Adding flashcard for user:', user?.id);
+      //console.log('Adding flashcard for user:', user?.id);
       if (!user) return;
-      console.log('Flashcard data:', card);
+      //console.log('Flashcard data:', card);
       const { data, error } = await supabase
         .from('flashcards')
         .insert({
@@ -153,7 +153,7 @@ export const useDataStore = create<DataState>((set, get) => ({
         })
         .select()
         .single();
-      console.log('Flashcard insert result:', data, 'Error:', error);
+      //console.log('Flashcard insert result:', data, 'Error:', error);
 
       if (!error && data) {
         const newCard: Flashcard = {
@@ -242,7 +242,7 @@ export const useDataStore = create<DataState>((set, get) => ({
   loadFlashcards: async () => {
     try {
       const { user } = useAuthStore.getState();
-      console.log('Loading flashcards for user:', user?.id);
+      //console.log('Loading flashcards for user:', user?.id);
       if (!user) return;
 
       const { data, error } = await supabase
@@ -654,7 +654,7 @@ export const useDataStore = create<DataState>((set, get) => ({
   startActivitySession: async (activityType: string) => {
     try {
       await useStudySessionStore.getState().startStudySession(activityType);
-      console.log(`✓ Started study session for: ${activityType}`);
+      //console.log(`✓ Started study session for: ${activityType}`);
     } catch (error) {
       console.warn(`Failed to start study session for ${activityType}:`, error);
     }

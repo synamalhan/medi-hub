@@ -28,7 +28,7 @@ const StudySessions: React.FC = () => {
   const studyStreak = getStudyStreak();
 
   const formatHours = (hours: number) => {
-    console.log('🔍 Formatting hours:', hours);
+    //console.log('🔍 Formatting hours:', hours);
     
     if (hours < 0.001) {
       return 'Less than 1 minute';
@@ -88,11 +88,11 @@ const StudySessions: React.FC = () => {
 
   // Debug logging
   useEffect(() => {
-    console.log('StudySessions - All sessions:', sessions);
-    console.log('StudySessions - Recent sessions:', recentSessions);
-    console.log('StudySessions - Total hours:', totalHours);
-    console.log('StudySessions - Average session:', averageSession);
-    console.log('StudySessions - Study streak:', studyStreak);
+    //console.log('StudySessions - All sessions:', sessions);
+    //console.log('StudySessions - Recent sessions:', recentSessions);
+    //console.log('StudySessions - Total hours:', totalHours);
+    //console.log('StudySessions - Average session:', averageSession);
+    //console.log('StudySessions - Study streak:', studyStreak);
   }, [sessions, recentSessions, totalHours, averageSession, studyStreak]);
 
   return (
@@ -196,24 +196,24 @@ const StudySessions: React.FC = () => {
                   <div className="text-right">
                     <p className="font-semibold text-gray-900">
                       {(() => {
-                        console.log('🔍 Session duration calculation for:', session.id, {
+                        //console.log('🔍 Session duration calculation for:', session.id, {
                           duration_hours: session.duration_hours,
                           end_time: session.end_time,
                           start_time: session.start_time
                         });
                         
                         if (session.duration_hours) {
-                          console.log('🔍 Using duration_hours:', session.duration_hours);
+                          //console.log('🔍 Using duration_hours:', session.duration_hours);
                           return formatHours(session.duration_hours);
                         }
                         if (session.end_time) {
                           const startTime = new Date(session.start_time);
                           const endTime = new Date(session.end_time);
                           const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
-                          console.log('🔍 Calculated duration from start/end times:', durationHours);
+                          //console.log('🔍 Calculated duration from start/end times:', durationHours);
                           return formatHours(durationHours);
                         }
-                        console.log('🔍 No duration data available, returning 0');
+                        //console.log('🔍 No duration data available, returning 0');
                         return formatHours(0);
                       })()}
                     </p>

@@ -21,7 +21,7 @@ const Auth: React.FC = () => {
   // Clear all caches and log out any previous user when the Auth page is opened
   useEffect(() => {
     const handleAuthPageLoad = async () => {
-      console.log('Auth page loaded - clearing all caches...');
+      //console.log('Auth page loaded - clearing all caches...');
       try {
         // Clear all store caches first
         clearAllStores();
@@ -29,16 +29,16 @@ const Auth: React.FC = () => {
         // Clear browser storage
         if (typeof window !== 'undefined') {
           localStorage.clear();
-          console.log('✓ localStorage cleared');
+          //console.log('✓ localStorage cleared');
           sessionStorage.clear();
-          console.log('✓ sessionStorage cleared');
+          //console.log('✓ sessionStorage cleared');
           
           // Clear any cached data
           if ('caches' in window) {
             try {
               const cacheNames = await caches.keys();
               await Promise.all(cacheNames.map(name => caches.delete(name)));
-              console.log(`✓ ${cacheNames.length} caches cleared`);
+              //console.log(`✓ ${cacheNames.length} caches cleared`);
             } catch (error) {
               console.warn('Error clearing caches:', error);
             }
@@ -49,12 +49,12 @@ const Auth: React.FC = () => {
             key.startsWith('sb-') || key.includes('supabase')
           );
           supabaseKeys.forEach(key => localStorage.removeItem(key));
-          console.log(`✓ ${supabaseKeys.length} Supabase keys cleared`);
+          //console.log(`✓ ${supabaseKeys.length} Supabase keys cleared`);
         }
         
         // Log out any previous user
         await logout(false);
-        console.log('✓ Previous user logged out');
+        //console.log('✓ Previous user logged out');
       } catch (error) {
         console.error('Error clearing cache and logging out:', error);
       }

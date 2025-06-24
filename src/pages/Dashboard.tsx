@@ -209,7 +209,7 @@ const Dashboard: React.FC = () => {
         isLoading: false
       });
 
-      console.log('Today\'s progress:', {
+      //console.log('Today\'s progress:', {
         flashcardsReviewed: flashcardData?.length || 0,
         patientCasesCompleted: patientData?.length || 0,
         studyHours: totalStudyHours,
@@ -227,7 +227,7 @@ const Dashboard: React.FC = () => {
     if (!user) return;
 
     try {
-      console.log('🔧 Ending all active sessions...');
+      //console.log('🔧 Ending all active sessions...');
       
       const { data: activeSessions, error } = await supabase
         .from('study_sessions')
@@ -240,14 +240,14 @@ const Dashboard: React.FC = () => {
         return;
       }
 
-      console.log('🔧 Found active sessions to end:', activeSessions);
+      //console.log('🔧 Found active sessions to end:', activeSessions);
 
       for (const session of activeSessions) {
         const endTime = new Date();
         const startTime = new Date(session.start_time);
         const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
 
-        console.log(`🔧 Ending session ${session.id}: ${durationHours.toFixed(4)} hours`);
+        //console.log(`🔧 Ending session ${session.id}: ${durationHours.toFixed(4)} hours`);
 
         const { error: updateError } = await supabase
           .from('study_sessions')
@@ -260,7 +260,7 @@ const Dashboard: React.FC = () => {
         if (updateError) {
           console.error(`Error ending session ${session.id}:`, updateError);
         } else {
-          console.log(`✅ Ended session ${session.id}`);
+          //console.log(`✅ Ended session ${session.id}`);
         }
       }
 
@@ -278,7 +278,7 @@ const Dashboard: React.FC = () => {
     if (!user) return;
 
     try {
-      console.log('🔍 Checking for active sessions...');
+      //console.log('🔍 Checking for active sessions...');
       
       const { data: activeSessions, error } = await supabase
         .from('study_sessions')
@@ -291,18 +291,18 @@ const Dashboard: React.FC = () => {
         return;
       }
 
-      console.log('🔍 Active sessions (not ended):', activeSessions);
+      //console.log('🔍 Active sessions (not ended):', activeSessions);
 
       if (activeSessions.length > 0) {
-        console.log('⚠️ Found active sessions that haven\'t ended:');
+        //console.log('⚠️ Found active sessions that haven\'t ended:');
         activeSessions.forEach(session => {
           const startTime = new Date(session.start_time);
           const now = new Date();
           const durationHours = (now.getTime() - startTime.getTime()) / (1000 * 60 * 60);
-          console.log(`  - Session ${session.id}: ${session.session_type}, started ${startTime.toLocaleString()}, duration: ${durationHours.toFixed(4)} hours`);
+          //console.log(`  - Session ${session.id}: ${session.session_type}, started ${startTime.toLocaleString()}, duration: ${durationHours.toFixed(4)} hours`);
         });
       } else {
-        console.log('✅ No active sessions found');
+        //console.log('✅ No active sessions found');
       }
       
     } catch (error) {
@@ -315,7 +315,7 @@ const Dashboard: React.FC = () => {
     if (!user) return;
 
     try {
-      console.log('🔧 Fixing session durations...');
+      //console.log('🔧 Fixing session durations...');
       
       const { data: sessions, error } = await supabase
         .from('study_sessions')
@@ -329,14 +329,14 @@ const Dashboard: React.FC = () => {
         return;
       }
 
-      console.log('🔧 Found sessions to fix:', sessions);
+      //console.log('🔧 Found sessions to fix:', sessions);
 
       for (const session of sessions) {
         const startTime = new Date(session.start_time);
         const endTime = new Date(session.end_time);
         const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
 
-        console.log(`🔧 Fixing session ${session.id}: ${durationHours.toFixed(4)} hours`);
+        //console.log(`🔧 Fixing session ${session.id}: ${durationHours.toFixed(4)} hours`);
 
         const { error: updateError } = await supabase
           .from('study_sessions')
@@ -346,7 +346,7 @@ const Dashboard: React.FC = () => {
         if (updateError) {
           console.error(`Error updating session ${session.id}:`, updateError);
         } else {
-          console.log(`✅ Fixed session ${session.id}`);
+          //console.log(`✅ Fixed session ${session.id}`);
         }
       }
 
@@ -376,7 +376,7 @@ const Dashboard: React.FC = () => {
         return;
       }
 
-      console.log('Debug - All study sessions for user:', data);
+      //console.log('Debug - All study sessions for user:', data);
       
       const today = new Date();
       const todayStart = startOfDay(today).toISOString();
@@ -387,19 +387,19 @@ const Dashboard: React.FC = () => {
         return sessionDate >= new Date(todayStart) && sessionDate <= new Date(todayEnd);
       });
 
-      console.log('Debug - Today\'s study sessions:', todaySessions);
-      console.log('Debug - Today start:', todayStart);
-      console.log('Debug - Today end:', todayEnd);
+      //console.log('Debug - Today\'s study sessions:', todaySessions);
+      //console.log('Debug - Today start:', todayStart);
+      //console.log('Debug - Today end:', todayEnd);
 
       // Check for current login session
       const currentLoginSession = data.find(session => 
         session.session_type === 'login_session' && !session.end_time
       );
-      console.log('Debug - Current login session:', currentLoginSession);
+      //console.log('Debug - Current login session:', currentLoginSession);
 
       // Check study session store state
       const studySessionStore = useStudySessionStore.getState();
-      console.log('Debug - Study session store state:', {
+      //console.log('Debug - Study session store state:', {
         currentSession: studySessionStore.currentSession,
         sessionsCount: studySessionStore.sessions.length,
         isLoading: studySessionStore.isLoading,
@@ -414,7 +414,7 @@ const Dashboard: React.FC = () => {
   // Initialize study session store and fetch sessions
   useEffect(() => {
     if (user) {
-      console.log('🔄 Initializing study session store...');
+      //console.log('🔄 Initializing study session store...');
       useStudySessionStore.getState().fetchSessions('week');
     }
   }, [user?.id]);
@@ -437,11 +437,11 @@ const Dashboard: React.FC = () => {
     const handleFocus = () => {
       const now = Date.now();
       if (now - lastRefreshTime > REFRESH_COOLDOWN) {
-        console.log('🔄 Tab focused, refreshing progress...');
+        //console.log('🔄 Tab focused, refreshing progress...');
         fetchTodayProgress();
         lastRefreshTime = now;
       } else {
-        console.log('⏳ Skipping refresh - too soon since last refresh');
+        //console.log('⏳ Skipping refresh - too soon since last refresh');
       }
     };
 
@@ -601,7 +601,7 @@ const Dashboard: React.FC = () => {
                 </button>
                 <button
                   onClick={() => {
-                    console.log('🔄 Manually starting login session...');
+                    //console.log('🔄 Manually starting login session...');
                     useStudySessionStore.getState().startLoginSession();
                   }}
                   className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
@@ -611,7 +611,7 @@ const Dashboard: React.FC = () => {
                 </button>
                 <button
                   onClick={() => {
-                    console.log('🔄 Manually ending login session...');
+                    //console.log('🔄 Manually ending login session...');
                     useStudySessionStore.getState().endLoginSession();
                   }}
                   className="p-1 text-gray-400 hover:text-gray-600 transition-colors"

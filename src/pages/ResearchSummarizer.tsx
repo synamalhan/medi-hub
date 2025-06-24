@@ -42,9 +42,9 @@ const ResearchSummarizer: React.FC = () => {
   });
 
   useEffect(() => {
-    console.log('Fetching summaries from database...');
+    //console.log('Fetching summaries from database...');
     fetchSummaries().then(() => {
-      console.log('Summaries fetched successfully');
+      //console.log('Summaries fetched successfully');
     }).catch((error) => {
       console.error('Error fetching summaries:', error);
     });
@@ -52,7 +52,7 @@ const ResearchSummarizer: React.FC = () => {
 
   useEffect(() => {
     if (isProcessing) {
-      console.log('Currently processing summary...');
+      //console.log('Currently processing summary...');
     }
   }, [isProcessing]);
 
@@ -79,25 +79,25 @@ const ResearchSummarizer: React.FC = () => {
     }
 
     setIsProcessing(true);
-    console.log('Starting summary generation for file:', file.name);
+    //console.log('Starting summary generation for file:', file.name);
     try {
       // Extract text from PDF
-      console.log('Extracting text from PDF...');
+      //console.log('Extracting text from PDF...');
       const text = await extractTextFromPDF(file);
-      console.log('Text extracted successfully');
+      //console.log('Text extracted successfully');
 
       // Generate summary
-      console.log('Generating summary with settings:', settings);
+      //console.log('Generating summary with settings:', settings);
       const summary = await summarizeText(
         text,
         settings.maxChunkLength,
         settings.summaryMinLength,
         settings.summaryMaxLength
       );
-      console.log('Summary generated successfully');
+      //console.log('Summary generated successfully');
       
       // Save to database
-      console.log('Saving summary to database...');
+      //console.log('Saving summary to database...');
       await createSummary({
         paper_title: file.name.replace('.pdf', ''),
         original_text: text,
@@ -108,7 +108,7 @@ const ResearchSummarizer: React.FC = () => {
         model_used: 'facebook/bart-large-cnn',
         user_id: user?.id || '',
       });
-      console.log('Summary saved successfully to database');
+      //console.log('Summary saved successfully to database');
 
       setSummary(summary);
       toast.success('Summary generated successfully!');
@@ -117,7 +117,7 @@ const ResearchSummarizer: React.FC = () => {
       toast.error('Failed to generate summary');
     } finally {
       setIsProcessing(false);
-      console.log('Summary generation process completed');
+      //console.log('Summary generation process completed');
     }
   };
 
@@ -136,10 +136,10 @@ const ResearchSummarizer: React.FC = () => {
   };
 
   const handleDeleteSummary = async (id: string) => {
-    console.log('Attempting to delete summary with ID:', id);
+    //console.log('Attempting to delete summary with ID:', id);
     try {
       await deleteSummary(id);
-      console.log('Summary deleted successfully from database');
+      //console.log('Summary deleted successfully from database');
       toast.success('Summary deleted successfully');
     } catch (error) {
       console.error('Error deleting summary:', error);

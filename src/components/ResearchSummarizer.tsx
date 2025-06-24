@@ -33,7 +33,7 @@ export function ResearchSummarizer() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
-    console.log('File selected:', {
+    //console.log('File selected:', {
       name: selectedFile?.name,
       type: selectedFile?.type,
       size: selectedFile?.size
@@ -65,16 +65,16 @@ export function ResearchSummarizer() {
     }
 
     try {
-      console.log('Starting summary generation process');
+      //console.log('Starting summary generation process');
       setIsLoading(true);
       setError(null);
       setSummary('');
       setProgress(0);
 
       // Extract text from PDF
-      console.log('Extracting text from PDF...');
+      //console.log('Extracting text from PDF...');
       const text = await extractTextFromPDF(file);
-      console.log('Text extraction completed', {
+      //console.log('Text extraction completed', {
         textLength: text.length,
         preview: text.substring(0, 200) + '...'
       });
@@ -83,9 +83,9 @@ export function ResearchSummarizer() {
       setProgress(50);
 
       // Generate summary
-      console.log('Generating summary...');
+      //console.log('Generating summary...');
       const generatedSummary = summarizeText(text);
-      console.log('Summary generation completed', {
+      //console.log('Summary generation completed', {
         summaryLength: generatedSummary.length,
         summary: generatedSummary
       });
@@ -93,7 +93,7 @@ export function ResearchSummarizer() {
       setSummary(generatedSummary);
 
       // Save to database with deadline and mnemonics
-      console.log('Saving summary to database...');
+      //console.log('Saving summary to database...');
       await createSummary({
         paper_title: file.name.replace('.pdf', ''),
         original_text: text,
@@ -106,7 +106,7 @@ export function ResearchSummarizer() {
         deadline: deadline || undefined,
         mnemonics: mnemonics ? mnemonics.split(',').map(m => m.trim()) : undefined
       });
-      console.log('Summary saved successfully to database');
+      //console.log('Summary saved successfully to database');
 
       toast({
         title: 'Summary generated',
@@ -122,7 +122,7 @@ export function ResearchSummarizer() {
       });
     } finally {
       setIsLoading(false);
-      console.log('Summary generation process completed');
+      //console.log('Summary generation process completed');
     }
   };
 

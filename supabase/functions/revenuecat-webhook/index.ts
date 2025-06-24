@@ -24,7 +24,7 @@ serve(async (req) => {
 
     // Get the event data
     const event = await req.json()
-    console.log('🔄 RevenueCat webhook received:', event.event_type)
+    //console.log('🔄 RevenueCat webhook received:', event.event_type)
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
@@ -46,7 +46,7 @@ serve(async (req) => {
         await handleExpiration(supabase, event)
         break
       default:
-        console.log('Unhandled event type:', event.event_type)
+        //console.log('Unhandled event type:', event.event_type)
     }
 
     // Log the event
@@ -62,7 +62,7 @@ serve(async (req) => {
 async function handleInitialPurchase(supabase: any, event: any) {
   const { app_user_id, product_id, expiration_at_ms } = event
   
-  console.log('💰 Processing initial purchase for user:', app_user_id)
+  //console.log('💰 Processing initial purchase for user:', app_user_id)
   
   // Find user by RevenueCat user ID
   const { data: profile, error } = await supabase
@@ -89,13 +89,13 @@ async function handleInitialPurchase(supabase: any, event: any) {
     })
     .eq('id', profile.id)
 
-  console.log('✅ User subscription activated:', profile.id)
+  //console.log('✅ User subscription activated:', profile.id)
 }
 
 async function handleRenewal(supabase: any, event: any) {
   const { app_user_id, expiration_at_ms } = event
   
-  console.log('🔄 Processing renewal for user:', app_user_id)
+  //console.log('🔄 Processing renewal for user:', app_user_id)
   
   const { data: profile } = await supabase
     .from('profiles')
@@ -114,13 +114,13 @@ async function handleRenewal(supabase: any, event: any) {
     })
     .eq('id', profile.id)
 
-  console.log('✅ User subscription renewed:', profile.id)
+  //console.log('✅ User subscription renewed:', profile.id)
 }
 
 async function handleCancellation(supabase: any, event: any) {
   const { app_user_id } = event
   
-  console.log('❌ Processing cancellation for user:', app_user_id)
+  //console.log('❌ Processing cancellation for user:', app_user_id)
   
   const { data: profile } = await supabase
     .from('profiles')
@@ -137,13 +137,13 @@ async function handleCancellation(supabase: any, event: any) {
     })
     .eq('id', profile.id)
 
-  console.log('✅ User subscription cancelled:', profile.id)
+  //console.log('✅ User subscription cancelled:', profile.id)
 }
 
 async function handleExpiration(supabase: any, event: any) {
   const { app_user_id } = event
   
-  console.log('⏰ Processing expiration for user:', app_user_id)
+  //console.log('⏰ Processing expiration for user:', app_user_id)
   
   const { data: profile } = await supabase
     .from('profiles')
@@ -161,7 +161,7 @@ async function handleExpiration(supabase: any, event: any) {
     })
     .eq('id', profile.id)
 
-  console.log('✅ User subscription expired:', profile.id)
+  //console.log('✅ User subscription expired:', profile.id)
 }
 
 async function logWebhookEvent(supabase: any, event: any) {

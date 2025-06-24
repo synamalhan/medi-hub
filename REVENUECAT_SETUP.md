@@ -179,7 +179,7 @@ Enable debug logging:
 
 ```typescript
 // Add to your code
-console.log('🔄 RevenueCat Debug:', { event, data });
+//console.log('🔄 RevenueCat Debug:', { event, data });
 ```
 
 ## 📚 Resources

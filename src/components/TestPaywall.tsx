@@ -14,7 +14,7 @@ export const TestPaywall: React.FC = () => {
       setIsLoading(true);
       try {
         const pkgs = await getPackages();
-        console.log('📦 Test packages loaded:', pkgs);
+        //console.log('📦 Test packages loaded:', pkgs);
         setPackages(pkgs);
       } catch (error) {
         console.error('❌ Failed to load packages:', error);
@@ -60,7 +60,7 @@ export const TestPaywall: React.FC = () => {
       
       <button 
         onClick={() => {
-          console.log('🔄 Test paywall button clicked');
+          //console.log('🔄 Test paywall button clicked');
           setShowPaywall(true);
         }}
         className="btn-primary mb-4"
@@ -79,13 +79,13 @@ export const TestPaywall: React.FC = () => {
             <SubscriptionPaywall 
               variant="full" 
               onSuccess={() => {
-                console.log('✅ Test paywall success');
+                //console.log('✅ Test paywall success');
                 setShowPaywall(false);
                 // Refresh the page to show updated user status
                 window.location.reload();
               }}
               onClose={() => {
-                console.log('❌ Test paywall closed');
+                //console.log('❌ Test paywall closed');
                 setShowPaywall(false);
               }}
             />

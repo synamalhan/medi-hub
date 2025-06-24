@@ -17,7 +17,7 @@ function MyComponent() {
       variant: 'modal',
       trigger: 'upgrade',
       onSuccess: () => {
-        console.log('User upgraded to Pro!');
+        //console.log('User upgraded to Pro!');
         // Refresh the page or component
         window.location.reload();
       }

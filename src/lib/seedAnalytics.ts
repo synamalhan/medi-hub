@@ -6,7 +6,7 @@ export async function seedAnalyticsData() {
     if (authError) throw authError;
     if (!user) throw new Error('No authenticated user');
 
-    console.log('Seeding analytics data for user:', user.id);
+    //console.log('Seeding analytics data for user:', user.id);
 
     // Create test study sessions
     const studySessions = [
@@ -59,7 +59,7 @@ export async function seedAnalyticsData() {
       throw sessionsError;
     }
 
-    console.log('Inserted study sessions:', insertedSessions);
+    //console.log('Inserted study sessions:', insertedSessions);
 
     // Create test category performance data
     const categoryPerformance = [
@@ -94,7 +94,7 @@ export async function seedAnalyticsData() {
       throw performanceError;
     }
 
-    console.log('Inserted category performance:', insertedPerformance);
+    //console.log('Inserted category performance:', insertedPerformance);
 
     // Verify the data was inserted correctly
     const { data: verifySessions, error: verifySessionsError } = await supabase
@@ -117,8 +117,8 @@ export async function seedAnalyticsData() {
       throw verifyPerformanceError;
     }
 
-    console.log('Verification - Study Sessions:', verifySessions);
-    console.log('Verification - Category Performance:', verifyPerformance);
+    //console.log('Verification - Study Sessions:', verifySessions);
+    //console.log('Verification - Category Performance:', verifyPerformance);
 
     return {
       studySessions: verifySessions,

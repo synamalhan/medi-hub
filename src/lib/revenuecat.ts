@@ -8,10 +8,10 @@ export const initializeRevenueCat = async () => {
       // Mock initialization
       purchasesInstance = {
         logIn: async (userId: string) => {
-          console.log('Mock RevenueCat: User logged in', userId);
+          //console.log('Mock RevenueCat: User logged in', userId);
         },
         logOut: async () => {
-          console.log('Mock RevenueCat: User logged out');
+          //console.log('Mock RevenueCat: User logged out');
         }
       };
     }

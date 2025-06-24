@@ -46,28 +46,28 @@ const PatientSimulator: React.FC = () => {
     if (!currentCase) {
       generateNewCase();
     }
-    console.log('Current Case:', currentCase);
+    //console.log('Current Case:', currentCase);
   }, [currentCase, generateNewCase]);
 
   const handleSubmitDiagnosis = async () => {
-  console.log('Submitting diagnosis:', userDiagnosis); // Debug log
+  //console.log('Submitting diagnosis:', userDiagnosis); // Debug log
   
   if (!userDiagnosis.trim()) {
-    console.log('Empty diagnosis submitted'); // Debug log
+    //console.log('Empty diagnosis submitted'); // Debug log
     toast.error('Please enter your diagnosis');
     return;
   }
 
   if (!currentCase) {
-    console.log('No current case found'); // Debug log
+    //console.log('No current case found'); // Debug log
     toast.error('No patient case loaded');
     return;
   }
 
   try {
-    console.log('Current case diagnosis:', currentCase.diagnosis); // Debug log
+    //console.log('Current case diagnosis:', currentCase.diagnosis); // Debug log
     const correct = await submitDiagnosis(userDiagnosis);
-    console.log('Diagnosis result:', correct); // Debug log
+    //console.log('Diagnosis result:', correct); // Debug log
     
     setIsCorrect(correct);
     setShowResult(true);

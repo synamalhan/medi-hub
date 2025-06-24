@@ -48,7 +48,7 @@ export const useStudySessionStore = create<StudySessionState>((set, get) => ({
       const { user } = useAuthStore.getState();
       if (!user) return;
 
-      console.log('Starting login session tracking...');
+      //console.log('Starting login session tracking...');
       
       const { data, error } = await supabase
         .from('study_sessions')
@@ -78,15 +78,15 @@ export const useStudySessionStore = create<StudySessionState>((set, get) => ({
       };
 
       set({ currentSession: session });
-      console.log('✓ Login session started:', session.id);
+      //console.log('✓ Login session started:', session.id);
 
       // Set up page visibility tracking
       if (typeof document !== 'undefined') {
         const handleVisibilityChange = () => {
           if (document.hidden) {
-            console.log('Page hidden - pausing session tracking');
+            //console.log('Page hidden - pausing session tracking');
           } else {
-            console.log('Page visible - resuming session tracking');
+            //console.log('Page visible - resuming session tracking');
           }
         };
 
@@ -102,11 +102,11 @@ export const useStudySessionStore = create<StudySessionState>((set, get) => ({
     try {
       const { currentSession } = get();
       if (!currentSession) {
-        console.log('No current session to end');
+        //console.log('No current session to end');
         return;
       }
 
-      console.log('Ending login session...');
+      //console.log('Ending login session...');
       
       const endTime = new Date();
       const startTime = new Date(currentSession.start_time);
@@ -139,7 +139,7 @@ export const useStudySessionStore = create<StudySessionState>((set, get) => ({
         useAuthStore.getState().updateUser({ stats: updatedStats });
       }
 
-      console.log(`✓ Login session ended. Duration: ${durationHours.toFixed(2)} hours`);
+      //console.log(`✓ Login session ended. Duration: ${durationHours.toFixed(2)} hours`);
       set({ currentSession: null });
     } catch (error) {
       console.error('Error ending login session:', error);
@@ -152,7 +152,7 @@ export const useStudySessionStore = create<StudySessionState>((set, get) => ({
       const { user } = useAuthStore.getState();
       if (!user) return;
 
-      console.log(`Starting study session for: ${activityType}`);
+      //console.log(`Starting study session for: ${activityType}`);
       
       const { data, error } = await supabase
         .from('study_sessions')
@@ -186,7 +186,7 @@ export const useStudySessionStore = create<StudySessionState>((set, get) => ({
         currentSession: session 
       }));
       
-      console.log('✓ Study session started:', session.id);
+      //console.log('✓ Study session started:', session.id);
     } catch (error) {
       console.error('Error starting study session:', error);
       set({ error: 'Failed to start study session' });
@@ -197,11 +197,11 @@ export const useStudySessionStore = create<StudySessionState>((set, get) => ({
     try {
       const { currentSession, sessions } = get();
       if (!currentSession || currentSession.activity_type !== activityType) {
-        console.log(`No current study session for ${activityType} to end`);
+        //console.log(`No current study session for ${activityType} to end`);
         return;
       }
 
-      console.log(`Ending study session for: ${activityType}`);
+      //console.log(`Ending study session for: ${activityType}`);
       
       const endTime = new Date();
       const startTime = new Date(currentSession.start_time);
@@ -241,7 +241,7 @@ export const useStudySessionStore = create<StudySessionState>((set, get) => ({
         currentSession: null
       }));
 
-      console.log(`✓ Study session ended. Duration: ${durationHours.toFixed(2)} hours`);
+      //console.log(`✓ Study session ended. Duration: ${durationHours.toFixed(2)} hours`);
     } catch (error) {
       console.error('Error ending study session:', error);
       set({ error: 'Failed to end study session' });
@@ -295,7 +295,7 @@ export const useStudySessionStore = create<StudySessionState>((set, get) => ({
       }));
 
       set({ sessions, isLoading: false });
-      console.log(`✓ Fetched ${sessions.length} sessions for ${timeRange}`);
+      //console.log(`✓ Fetched ${sessions.length} sessions for ${timeRange}`);
     } catch (error) {
       console.error('Error fetching sessions:', error);
       set({ error: 'Failed to fetch sessions', isLoading: false });

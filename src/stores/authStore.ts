@@ -200,12 +200,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: async (shouldRedirect = true) => {
-    console.log('🔄 Starting logout process...');
+    //console.log('🔄 Starting logout process...');
     try {
       // End login session tracking first
       try {
         await useStudySessionStore.getState().endLoginSession();
-        console.log('✓ Study session ended');
+        //console.log('✓ Study session ended');
       } catch (error) {
         console.warn('Failed to end login session tracking:', error);
       }
@@ -213,19 +213,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Reset RevenueCat user
       try {
         await resetUser();
-        console.log('✓ RevenueCat user reset');
+        //console.log('✓ RevenueCat user reset');
       } catch (error) {
         console.warn('RevenueCat reset failed:', error);
       }
       
       // Clear Supabase session and cache properly
-      console.log('🔄 Signing out from Supabase...');
+      //console.log('🔄 Signing out from Supabase...');
       const { error: signOutError } = await supabase.auth.signOut();
       if (signOutError) {
         console.error('❌ Supabase signOut error:', signOutError);
         throw signOutError;
       }
-      console.log('✓ Supabase session cleared');
+      //console.log('✓ Supabase session cleared');
       
       // Wait a moment for the session to clear
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -243,10 +243,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         if (session2) {
           console.error('❌ Session still persists after second attempt');
         } else {
-          console.log('✓ Session cleared on second attempt');
+          //console.log('✓ Session cleared on second attempt');
         }
       } else {
-        console.log('✓ Session verification successful - user is logged out');
+        //console.log('✓ Session verification successful - user is logged out');
       }
       
       // Clear all store caches
@@ -260,26 +260,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isLoading: false,
         error: null 
       });
-      console.log('✓ Auth state cleared');
+      //console.log('✓ Auth state cleared');
 
       // Clear browser cache and storage
       if (typeof window !== 'undefined') {
-        console.log('🔄 Clearing browser storage...');
+        //console.log('🔄 Clearing browser storage...');
         
         // Clear localStorage
         localStorage.clear();
-        console.log('✓ localStorage cleared');
+        //console.log('✓ localStorage cleared');
         
         // Clear sessionStorage
         sessionStorage.clear();
-        console.log('✓ sessionStorage cleared');
+        //console.log('✓ sessionStorage cleared');
         
         // Clear any cached data
         if ('caches' in window) {
           try {
             const cacheNames = await caches.keys();
             await Promise.all(cacheNames.map(name => caches.delete(name)));
-            console.log(`✓ ${cacheNames.length} caches cleared`);
+            //console.log(`✓ ${cacheNames.length} caches cleared`);
           } catch (error) {
             console.warn('Failed to clear caches:', error);
           }
@@ -290,21 +290,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           key.startsWith('sb-') || key.includes('supabase')
         );
         supabaseKeys.forEach(key => localStorage.removeItem(key));
-        console.log(`✓ ${supabaseKeys.length} Supabase keys cleared`);
+        //console.log(`✓ ${supabaseKeys.length} Supabase keys cleared`);
         
         // Also clear any session storage keys
         const sessionKeys = Object.keys(sessionStorage).filter(key => 
           key.startsWith('sb-') || key.includes('supabase')
         );
         sessionKeys.forEach(key => sessionStorage.removeItem(key));
-        console.log(`✓ ${sessionKeys.length} Supabase session keys cleared`);
+        //console.log(`✓ ${sessionKeys.length} Supabase session keys cleared`);
       }
 
-      console.log('✅ Logout process completed successfully');
+      //console.log('✅ Logout process completed successfully');
 
       // Force a page reload to ensure complete logout
       if (shouldRedirect) {
-        console.log('🔄 Redirecting to auth page...');
+        //console.log('🔄 Redirecting to auth page...');
         // Use window.location.replace to prevent back button issues
         window.location.replace('/auth');
       }
@@ -314,7 +314,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       // Even if there's an error, try to redirect to auth page
       if (shouldRedirect) {
-        console.log('🔄 Redirecting to auth page despite error...');
+        //console.log('🔄 Redirecting to auth page despite error...');
         window.location.replace('/auth');
       }
     }
@@ -372,34 +372,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   clearAllStores: () => {
-    console.log('Clearing all stores...');
+    //console.log('Clearing all stores...');
     // Clear all Zustand stores by calling their clear methods
     try {
       useDataStore.getState().clear();
-      console.log('✓ DataStore cleared');
+      //console.log('✓ DataStore cleared');
       useResearchStore.getState().clear();
-      console.log('✓ ResearchStore cleared');
+      //console.log('✓ ResearchStore cleared');
       useAnalyticsStore.getState().clear();
-      console.log('✓ AnalyticsStore cleared');
+      //console.log('✓ AnalyticsStore cleared');
       useSubscriptionStore.getState().clear();
-      console.log('✓ SubscriptionStore cleared');
+      //console.log('✓ SubscriptionStore cleared');
       useStudySessionStore.getState().clear();
-      console.log('✓ StudySessionStore cleared');
+      //console.log('✓ StudySessionStore cleared');
     } catch (error) {
       console.warn('Error clearing stores:', error);
     }
   },
 
   debugSession: async () => {
-    console.log('🔍 Debugging session status...');
+    //console.log('🔍 Debugging session status...');
     
     try {
       // Check Supabase session
       const { data: { session }, error } = await supabase.auth.getSession();
-      console.log('Supabase session:', session ? 'EXISTS' : 'NONE');
+      //console.log('Supabase session:', session ? 'EXISTS' : 'NONE');
       if (session) {
-        console.log('Session user ID:', session.user.id);
-        console.log('Session expires at:', session.expires_at);
+        //console.log('Session user ID:', session.user.id);
+        //console.log('Session expires at:', session.expires_at);
       }
       if (error) {
         console.error('Session error:', error);
@@ -407,7 +407,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       // Check current auth state
       const currentState = get();
-      console.log('Current auth state:', {
+      //console.log('Current auth state:', {
         isAuthenticated: currentState.isAuthenticated,
         user: currentState.user ? 'EXISTS' : 'NONE',
         isLoading: currentState.isLoading
@@ -418,12 +418,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const supabaseKeys = Object.keys(localStorage).filter(key => 
           key.startsWith('sb-') || key.includes('supabase')
         );
-        console.log('Supabase localStorage keys:', supabaseKeys);
+        //console.log('Supabase localStorage keys:', supabaseKeys);
         
         const sessionKeys = Object.keys(sessionStorage).filter(key => 
           key.startsWith('sb-') || key.includes('supabase')
         );
-        console.log('Supabase sessionStorage keys:', sessionKeys);
+        //console.log('Supabase sessionStorage keys:', sessionKeys);
       }
     } catch (error) {
       console.error('Debug session error:', error);
@@ -433,10 +433,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
 // Listen for auth changes
 supabase.auth.onAuthStateChange(async (event, session) => {
-  console.log(`🔄 Auth state change: ${event}`, session ? 'Session exists' : 'No session');
+  //console.log(`🔄 Auth state change: ${event}`, session ? 'Session exists' : 'No session');
   
   if (event === 'SIGNED_IN' && session?.user) {
-    console.log('🔄 User signed in, fetching profile...');
+    //console.log('🔄 User signed in, fetching profile...');
     try {
       const { data: profile } = await supabase
         .from('profiles')
@@ -447,12 +447,12 @@ supabase.auth.onAuthStateChange(async (event, session) => {
       if (profile) {
         const user = transformSupabaseUser(profile);
         useAuthStore.setState({ user, isAuthenticated: true });
-        console.log('✓ User profile loaded and state updated');
+        //console.log('✓ User profile loaded and state updated');
         
         // Initialize RevenueCat
         try {
           await identifyUser(user.id);
-          console.log('✓ RevenueCat user identified');
+          //console.log('✓ RevenueCat user identified');
         } catch (error) {
           console.warn('RevenueCat initialization failed:', error);
         }
@@ -463,10 +463,10 @@ supabase.auth.onAuthStateChange(async (event, session) => {
       console.error('Error fetching user profile:', error);
     }
   } else if (event === 'SIGNED_OUT') {
-    console.log('🔄 User signed out, clearing state...');
+    //console.log('🔄 User signed out, clearing state...');
     try {
       await resetUser();
-      console.log('✓ RevenueCat user reset');
+      //console.log('✓ RevenueCat user reset');
     } catch (error) {
       console.warn('RevenueCat reset failed:', error);
     }
@@ -475,13 +475,13 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     const currentState = useAuthStore.getState();
     if (currentState.isAuthenticated) {
       useAuthStore.setState({ user: null, isAuthenticated: false });
-      console.log('✓ Auth state cleared via auth state change');
+      //console.log('✓ Auth state cleared via auth state change');
     } else {
-      console.log('Auth state already cleared, skipping update');
+      //console.log('Auth state already cleared, skipping update');
     }
   } else if (event === 'TOKEN_REFRESHED') {
-    console.log('🔄 Token refreshed');
+    //console.log('🔄 Token refreshed');
   } else if (event === 'USER_UPDATED') {
-    console.log('🔄 User updated');
+    //console.log('🔄 User updated');
   }
 });

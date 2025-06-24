@@ -19,13 +19,13 @@ function splitTextIntoFixedChunks(text: string, maxChunkLength: number = 3000): 
 
 export async function summarizeWithHuggingFaceChunks(text: string): Promise<string> {
   const chunks = splitTextIntoFixedChunks(text, 3000);
-  console.log(`Split into ${chunks.length} chunks of max 3000 characters each.`);
+  //console.log(`Split into ${chunks.length} chunks of max 3000 characters each.`);
 
   let finalSummary = '';
 
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
-    console.log(`Summarizing chunk ${i + 1}/${chunks.length} (length: ${chunk.length})`);
+    //console.log(`Summarizing chunk ${i + 1}/${chunks.length} (length: ${chunk.length})`);
 
     try {
       const response = await axios.post(
@@ -67,16 +67,16 @@ let summarizer: any = null;
 
 export async function loadSummarizer(modelName: string = "Xenova/distilbart-cnn-6-6") {
   if (!summarizer) {
-    console.log('Loading summarizer model:', modelName);
+    //console.log('Loading summarizer model:', modelName);
     try {
       // Initialize the pipeline with specific options
       summarizer = await pipeline('summarization', modelName, {
         quantized: true,
         progress_callback: (progress: number) => {
-          console.log(`Loading model: ${Math.round(progress * 100)}%`);
+          //console.log(`Loading model: ${Math.round(progress * 100)}%`);
         }
       });
-      console.log('Summarizer model loaded successfully');
+      //console.log('Summarizer model loaded successfully');
     } catch (error) {
       console.error('Error loading summarizer model:', error);
       throw new Error('Failed to load summarizer model');
@@ -118,34 +118,34 @@ const SECTION_HEADERS = [
 
 export async function extractTextFromPDF(file: File): Promise<string> {
   try {
-    console.log('Starting PDF text extraction...', { fileName: file.name, fileSize: file.size });
+    //console.log('Starting PDF text extraction...', { fileName: file.name, fileSize: file.size });
     
     // Convert File to ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
-    console.log('File converted to ArrayBuffer');
+    //console.log('File converted to ArrayBuffer');
     
     // Load the PDF document
     const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-    console.log('PDF loading task created');
+    //console.log('PDF loading task created');
     
     const pdf = await loadingTask.promise;
-    console.log(`PDF loaded successfully. Total pages: ${pdf.numPages}`);
+    //console.log(`PDF loaded successfully. Total pages: ${pdf.numPages}`);
     
     let fullText = '';
     
     // Extract text from each page
     for (let i = 1; i <= pdf.numPages; i++) {
-      console.log(`Processing page ${i}/${pdf.numPages}`);
+      //console.log(`Processing page ${i}/${pdf.numPages}`);
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();
       const pageText = textContent.items
         .map((item: any) => item.str)
         .join(' ');
       fullText += pageText + '\n';
-      console.log(`Page ${i} text length: ${pageText.length} characters`);
+      //console.log(`Page ${i} text length: ${pageText.length} characters`);
     }
     
-    console.log('PDF text extraction completed successfully', {
+    //console.log('PDF text extraction completed successfully', {
       totalTextLength: fullText.length,
       preview: fullText.substring(0, 200) + '...'
     });
@@ -256,6 +256,6 @@ function organizeIntoSections(sentences: Sentence[]): Section[] {
 
 export async function summarizeText(text: string): Promise<string> {
   const summary = await summarizeWithHuggingFaceChunks(text);
-  console.log("Summary:", summary);
+  //console.log("Summary:", summary);
   return summary;
 }

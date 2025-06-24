@@ -52,7 +52,7 @@ export const useAnalyticsStore = create<AnalyticsState>((set) => ({
   error: null,
 
   fetchAnalytics: async (timeRange: 'week' | 'month' | 'year') => {
-    console.log('Starting analytics fetch for time range:', timeRange);
+    //console.log('Starting analytics fetch for time range:', timeRange);
     set({ isLoading: true, error: null });
     
     try {
@@ -60,7 +60,7 @@ export const useAnalyticsStore = create<AnalyticsState>((set) => ({
       if (authError) throw authError;
       if (!user) throw new Error('No authenticated user');
 
-      console.log('Authenticated user:', user.id);
+      //console.log('Authenticated user:', user.id);
 
       // Calculate date range
       const now = new Date();
@@ -73,7 +73,7 @@ export const useAnalyticsStore = create<AnalyticsState>((set) => ({
         startDate.setFullYear(now.getFullYear() - 1);
       }
 
-      console.log('Fetching study sessions from:', startDate.toISOString());
+      //console.log('Fetching study sessions from:', startDate.toISOString());
 
       // Fetch study sessions
       const { data: sessions, error: sessionsError } = await supabase
@@ -88,7 +88,7 @@ export const useAnalyticsStore = create<AnalyticsState>((set) => ({
         throw sessionsError;
       }
 
-      console.log('Fetched study sessions:', sessions);
+      //console.log('Fetched study sessions:', sessions);
 
       // Fetch category performance
       const { data: performance, error: performanceError } = await supabase
@@ -103,7 +103,7 @@ export const useAnalyticsStore = create<AnalyticsState>((set) => ({
         throw performanceError;
       }
 
-      console.log('Fetched category performance:', performance);
+      //console.log('Fetched category performance:', performance);
 
       // Calculate time distribution
       const timeDistribution = (sessions || []).reduce((acc: TimeDistribution[], session) => {
@@ -129,7 +129,7 @@ export const useAnalyticsStore = create<AnalyticsState>((set) => ({
         item.percentage = (item.percentage / totalDuration) * 100;
       });
 
-      console.log('Calculated time distribution:', timeDistribution);
+      //console.log('Calculated time distribution:', timeDistribution);
 
       // Calculate weekly goals based on category performance
       const weeklyGoals = (performance || []).map(cat => ({
@@ -137,7 +137,7 @@ export const useAnalyticsStore = create<AnalyticsState>((set) => ({
         progress: cat.accuracy
       }));
 
-      console.log('Calculated weekly goals:', weeklyGoals);
+      //console.log('Calculated weekly goals:', weeklyGoals);
 
       set({
         studySessions: sessions || [],
@@ -147,7 +147,7 @@ export const useAnalyticsStore = create<AnalyticsState>((set) => ({
         isLoading: false
       });
 
-      console.log('Analytics state updated successfully');
+      //console.log('Analytics state updated successfully');
     } catch (error: any) {
       console.error('Error in fetchAnalytics:', error);
       set({ error: error.message, isLoading: false });
