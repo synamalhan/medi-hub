@@ -1,5 +1,56 @@
 import { pipeline, env } from '@xenova/transformers';
 import * as pdfjsLib from 'pdfjs-dist';
+import axios from 'axios';
+
+const MAX_CHARS = 3000; // safe limit for BART
+
+function splitTextIntoFixedChunks(text: string, maxChunkLength: number = 3000): string[] {
+  const chunks: string[] = [];
+  let start = 0;
+
+  while (start < text.length) {
+    const end = Math.min(start + maxChunkLength, text.length);
+    chunks.push(text.slice(start, end));
+    start = end;
+  }
+
+  return chunks;
+}
+
+export async function summarizeWithHuggingFaceChunks(text: string): Promise<string> {
+  const chunks = splitTextIntoFixedChunks(text, 3000);
+  console.log(`Split into ${chunks.length} chunks of max 3000 characters each.`);
+
+  let finalSummary = '';
+
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    console.log(`Summarizing chunk ${i + 1}/${chunks.length} (length: ${chunk.length})`);
+
+    try {
+      const response = await axios.post(
+        'https://api-inference.huggingface.co/models/facebook/bart-large-cnn',
+        { inputs: chunk },
+        {
+          headers: {
+            Authorization: `Bearer ${import.meta.env.VITE_HF_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const summary = response.data?.[0]?.summary_text;
+      finalSummary += `🧩 Summary ${i + 1}:\n${summary}\n\n`;
+    } catch (error: any) {
+      console.error(`Error summarizing chunk ${i + 1}:`, error.response?.data || error.message);
+      finalSummary += `⚠️ Chunk ${i + 1} failed to summarize.\n\n`;
+    }
+  }
+
+  return finalSummary.trim();
+}
+
+
 
 // Configure Transformers.js
 env.localModelPath = '/models';
@@ -203,127 +254,8 @@ function organizeIntoSections(sentences: Sentence[]): Section[] {
   return sections;
 }
 
-export function summarizeText(
-  text: string,
-  maxLength: number = 500,
-  minLength: number = 100
-): string {
-  try {
-    console.log('Starting text summarization...', {
-      inputTextLength: text.length,
-      maxLength,
-      minLength
-    });
-    
-    // Split text into sentences
-    const sentences = splitIntoSentences(text);
-    console.log(`Text split into ${sentences.length} sentences`, {
-      firstSentence: sentences[0],
-      lastSentence: sentences[sentences.length - 1]
-    });
-    
-    // Calculate scores for each sentence
-    const scoredSentences: Sentence[] = sentences.map((sentence, index) => {
-      const score = calculateSentenceScore(sentence, index, sentences.length);
-      return {
-        text: sentence,
-        score,
-        position: index
-      };
-    });
-    
-    console.log('Sentence scoring completed', {
-      highestScore: Math.max(...scoredSentences.map(s => s.score)),
-      lowestScore: Math.min(...scoredSentences.map(s => s.score)),
-      averageScore: scoredSentences.reduce((acc, s) => acc + s.score, 0) / scoredSentences.length
-    });
-    
-    // Organize sentences into sections
-    const sections = organizeIntoSections(scoredSentences);
-    console.log(`Text organized into ${sections.length} sections`, {
-      sectionNames: sections.map(s => s.name),
-      sentencesPerSection: sections.map(s => s.sentences.length)
-    });
-    
-    // Select sentences from each section
-    let summary = '';
-    let currentLength = 0;
-    
-    for (const section of sections) {
-      console.log(`Processing section: ${section.name}`, {
-        sentencesInSection: section.sentences.length
-      });
-      
-      // Sort sentences within the section by score
-      section.sentences.sort((a, b) => b.score - a.score);
-      
-      // Select top sentences from each section
-      const sectionSentences = section.sentences.slice(0, 2);
-      console.log(`Selected ${sectionSentences.length} sentences from ${section.name}`, {
-        sentences: sectionSentences.map(s => ({
-          text: s.text.substring(0, 50) + '...',
-          score: s.score
-        }))
-      });
-      
-      for (const sentence of sectionSentences) {
-        if (currentLength + sentence.text.length > maxLength) {
-          console.log('Reached maximum length limit');
-          break;
-        }
-        
-        if (summary) {
-          summary += ' ';
-        }
-        summary += sentence.text;
-        currentLength += sentence.text.length;
-        
-        if (currentLength >= minLength) {
-          console.log('Reached minimum length requirement');
-          break;
-        }
-      }
-      
-      if (currentLength >= minLength) {
-        break;
-      }
-    }
-    
-    // If we haven't reached the minimum length, add more sentences
-    if (currentLength < minLength) {
-      console.log('Adding more sentences to reach minimum length', {
-        currentLength,
-        minLength
-      });
-      
-      const allSentences = scoredSentences
-        .sort((a, b) => b.score - a.score)
-        .filter(s => !summary.includes(s.text));
-      
-      for (const sentence of allSentences) {
-        if (currentLength + sentence.text.length > maxLength) {
-          break;
-        }
-        
-        if (summary) {
-          summary += ' ';
-        }
-        summary += sentence.text;
-        currentLength += sentence.text.length;
-        
-        if (currentLength >= minLength) {
-          break;
-        }
-      }
-    }
-    
-    console.log('Text summarization completed successfully', {
-      summaryLength: summary.length,
-      summary: summary
-    });
-    return summary;
-  } catch (error) {
-    console.error('Error summarizing text:', error);
-    throw new Error('Failed to summarize text');
-  }
-} 
+export async function summarizeText(text: string): Promise<string> {
+  const summary = await summarizeWithHuggingFaceChunks(text);
+  console.log("Summary:", summary);
+  return summary;
+}

@@ -23,7 +23,7 @@ interface ResearchState {
   summaries: ResearchSummary[];
   isLoading: boolean;
   error: string | null;
-  createSummary: (data: Omit<ResearchSummary, 'id' | 'created_at'>) => Promise<void>;
+  createSummary: (data: ResearchSummary) => Promise<void>;
   fetchSummaries: () => Promise<void>;
   deleteSummary: (id: string) => Promise<void>;
   clear: () => void;
